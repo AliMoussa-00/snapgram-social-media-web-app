@@ -4,9 +4,12 @@
 from fastapi import FastAPI
 from app.models.engine.db_storage import init_db
 
+from app.api.routes.users import router as Router
+
 
 app = FastAPI()
 
+app.include_router(Router, tags=['User'], prefix='/users')
 
 @app.on_event('startup')
 async def on_startup():
