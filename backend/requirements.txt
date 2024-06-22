@@ -1,0 +1,6 @@
+beanie==1.26.0
+fastapi==0.111.0
+motor==3.4.0
+pydantic==2.7.4
+python-dotenv==1.0.1
+uvicorn==0.30.1
