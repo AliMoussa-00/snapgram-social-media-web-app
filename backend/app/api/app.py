@@ -13,6 +13,7 @@ app.include_router(post_router, tags=['Post'], prefix='/posts')
 
 app.include_router(Router, tags=['User'], prefix='/users')
 
+
 @app.on_event('startup')
 async def on_startup():
     """

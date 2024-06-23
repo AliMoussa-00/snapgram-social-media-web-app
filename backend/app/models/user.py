@@ -94,7 +94,7 @@ class UserResponse(BaseModel):
     - bio: A short biography of the user (optional).
     - profile_picture_url: URL to the user's profile picture (optional).
     """
-    id: Optional[str] = Field(None, alias="_id")
+    id: Optional[str] = Field(alias="_id")
     email: EmailStr
     username: str
     full_name: Optional[str] = None
