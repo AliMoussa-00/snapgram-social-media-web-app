@@ -10,7 +10,7 @@ from datetime import datetime
 import uuid
 
 
-class BaseModel(Document):
+class Common(Document):
     """
     Base class for MongoDB documents using Beanie and Pydantic.
 
@@ -34,13 +34,13 @@ class BaseModel(Document):
             - anystr_strip_whitespace: Strip whitespace from string fields.
             - json_encoders: Custom JSON encoder for datetime objects.
         """
-        orm_mode = True
-        anystr_strip_whitespace = True
+        from_attributes = True
+        str_strip_whitespace = True
         json_encoders = {
             datetime: lambda date: date.isoformat(),
         }
 
-    def update_timestamps(self):
+    def update_timestamps(self) -> None:
         """
         Update the `updated_at` timestamp to the current datetime.
         """

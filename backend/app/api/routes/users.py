@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """ Defining Routes for the user class """
 
-from typing import List, Optional
+from typing import List
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, EmailStr
-from app.models.user import User
+from app.models.user import User, UserCreateRequest, UserResponse, UpdateUserRequest
+from app.utils.hashing import hash_password
 
 router = APIRouter()
 
@@ -12,47 +12,43 @@ router = APIRouter()
 @router.post('/',
              status_code=status.HTTP_201_CREATED,
              response_description='create a user',
-             response_model=User)
-async def create_user(user: User) -> User:
+             response_model=UserResponse)
+async def create_user(user_create: UserCreateRequest) -> UserResponse:
+    user_data = user_create.model_dump(exclude_unset=True)
+    if 'password' in user_data:
+        user_data['hashed_password'] = hash_password(user_data.pop('password'))
+
+    user = User(**user_data)
     await user.create()
-    return user
+    return UserResponse(**user.model_dump(by_alias=True))
 
 
 @router.get('/',
             status_code=status.HTTP_200_OK,
             response_description='get all users as a list',
-            response_model=List[User])
-async def get_all_users() -> List[User]:
+            response_model=List[UserResponse])
+async def get_all_users() -> List[UserResponse]:
     users = await User.find().to_list()
-    return users
+
+    return [UserResponse(**user.model_dump(by_alias=True)) for user in users]
 
 
 @router.get('/{user_id}',
             response_description='get a user based on id',
-            response_model=User)
-async def get_user(user_id: str) -> User:
+            response_model=UserResponse)
+async def get_user(user_id: str) -> UserResponse:
     user = await User.get(user_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail='User not found')
 
-    return user
-
-
-# Update the user
-class UpdateUserRequest(BaseModel):
-    email: Optional[EmailStr] = None
-    password: Optional[str] = None
-    username: Optional[str] = None
-    full_name: Optional[str] = None
-    bio: Optional[str] = None
-    profile_picture_url: Optional[str] = None
+    return UserResponse(**user.model_dump(by_alias=True))
 
 
 @router.put('/{user_id}',
             response_description='updating a user',
-            response_model=User)
-async def update_user(user_id: str, updated_user: UpdateUserRequest) -> User:
+            response_model=UserResponse)
+async def update_user(user_id: str, updated_user: UpdateUserRequest) -> UserResponse:
     user = await User.get(user_id)
     if not user:
         raise HTTPException(
@@ -60,13 +56,12 @@ async def update_user(user_id: str, updated_user: UpdateUserRequest) -> User:
 
     user_data = updated_user.model_dump(exclude_unset=True)
     if 'password' in user_data:
-        # !! I should hash the password
-        user_data['hashed_password'] = user_data.pop('password')
+        user_data['hashed_password'] = hash_password(user_data.pop('password'))
 
     user.update_timestamps()
     await user.set(user_data)
 
-    return user
+    return UserResponse(**user.model_dump(by_alias=True))
 
 
 @router.delete('/{user_id}',
