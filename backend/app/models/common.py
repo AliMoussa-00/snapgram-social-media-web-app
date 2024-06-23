@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
-""" The BaseModel module that all classes will inherit from. """
+"""
+The BaseModel module that all classes will inherit from
+"""
+
 from beanie import Document
-from typing import Optional
 from pydantic import Field
+from typing import Optional
 from datetime import datetime
 import uuid
 
 
 class Common(Document):
-    """ 
+    """
     Base class for MongoDB documents using Beanie and Pydantic.
 
     Attributes:
@@ -37,7 +40,7 @@ class Common(Document):
             datetime: lambda date: date.isoformat(),
         }
 
-    def update_timestamps(self):
+    def update_timestamps(self) -> None:
         """
         Update the `updated_at` timestamp to the current datetime.
         """
