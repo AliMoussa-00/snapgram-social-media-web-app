@@ -3,9 +3,11 @@
 
 from fastapi import FastAPI
 from app.models.engine.db_storage import init_db
+from app.api.routes.posts import post_router
 
 
 app = FastAPI()
+app.include_router(post_router, tags=['Post'], prefix='/posts')
 
 
 @app.on_event('startup')
