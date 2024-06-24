@@ -46,8 +46,6 @@ async def get_all_posts_of_user(user_id: str) -> List[PostResponse]:
     posts = await Post.find(Post.user_id == user_id).to_list()
     return [PostResponse(**post.model_dump(by_alias=True)) for post in posts]
 
-    pass
-
 
 @post_router.get('/{post_id}',
                  status_code=status.HTTP_200_OK,
