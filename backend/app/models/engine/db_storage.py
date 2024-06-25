@@ -5,6 +5,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from app.core.config import MONGODB_URL, DB_NAME
 from app.models.post import Post
 from app.models.user import User
+from app.models.token import BlackListedTokens
 
 
 async def init_db():
@@ -16,6 +17,6 @@ async def init_db():
     try:
         client = AsyncIOMotorClient(MONGODB_URL)
         database = client[DB_NAME]
-        await init_beanie(database, document_models=[User, Post])
+        await init_beanie(database, document_models=[User, Post, BlackListedTokens])
     except Exception as e:
         raise ConnectionError(f"Failed to connect to the database: {e}")

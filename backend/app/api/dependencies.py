@@ -2,6 +2,7 @@
 """Dependencies for secured routes"""
 
 from app.models.user import User
+from app.models.token import BlackListedTokens
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from app.core.config import JWT_SECRET_KEY
@@ -33,6 +34,11 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"}
     )
+
+    # check if token is black listed
+    is_blacklisted = await BlackListedTokens.is_token_blacklisted(token)
+    if is_blacklisted:
+        raise credentials_exception
 
     try:
         payload = jwt.decode(token, JWT_SECRET_KEY, ALGORITHM)

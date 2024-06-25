@@ -6,6 +6,7 @@ import pytest
 from httpx import AsyncClient
 from app.api.app import app
 from app.models.user import User
+from app.models.token import BlackListedTokens
 from beanie import init_beanie
 from motor.motor_asyncio import AsyncIOMotorClient
 
@@ -24,7 +25,7 @@ async def initialize_db():
     """Initialize the test database."""
     client = AsyncIOMotorClient(
         "mongodb://localhost:27017")
-    await init_beanie(database=client.test_db, document_models=[User])
+    await init_beanie(database=client.test_db, document_models=[User, BlackListedTokens])
     yield
     # Drop the test database after tests are done
     await client.drop_database("test_db")

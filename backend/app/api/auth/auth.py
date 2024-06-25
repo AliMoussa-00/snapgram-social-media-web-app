@@ -6,17 +6,12 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app.models.user import User, UserCreateRequest, UserResponse
 from app.utils.auth import hash_password, verify_password, create_access_token, create_refresh_access_token
 from fastapi import APIRouter, HTTPException, status, Depends
-from app.api.dependencies import get_current_user
+from app.api.dependencies import get_current_user, oauth2_scheme
 from pydantic import BaseModel
+from app.models.token import Token, BlackListedTokens
 
 
 router = APIRouter()
-
-
-class Token(BaseModel):
-    access_token: str
-    refresh_token: str
-    token_type: Optional[str] = 'bearer'
 
 
 @router.post('/register',
@@ -83,3 +78,15 @@ async def get_current_user(current_user: User = Depends(get_current_user)) -> Us
     """get the current authenticated user"""
 
     return UserResponse(**current_user.model_dump(by_alias=True))
+
+
+@router.post('/logout',
+             response_description="logout a user",
+             response_model=dict)
+async def logout_user(
+        current_user: User = Depends(get_current_user),
+        token: str = Depends(oauth2_scheme)) -> dict:
+    """logout a user"""
+    black_listed_token = BlackListedTokens(token=token)
+    await black_listed_token.create()
+    return {"message": "Successfully logged out"}
