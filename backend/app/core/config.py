@@ -10,3 +10,6 @@ MONGODB_URL = getenv("MONGODB_URL")
 HOST = getenv("HOST")
 PORT = int(getenv("PORT"))
 DB_NAME = getenv("DB_NAME")
+
+JWT_SECRET_KEY = getenv('JWT_SECRET_KEY')
+JWT_REFRESH_SECRET_KEY = getenv('JWT_REFRESH_SECRET_KEY')

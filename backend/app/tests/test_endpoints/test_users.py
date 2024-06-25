@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """ testing the users endpoints """
 
+from app.utils.auth import create_access_token
 import pytest
 from httpx import AsyncClient
 from app.api.app import app
@@ -30,34 +31,29 @@ async def initialize_db():
 
 
 @pytest.mark.anyio
-async def test_create_user():
-    """Test the creation of a user endpoint."""
-
-    # Define user data for creation
-    user_data = {
-        "username": "testuser",
-        "password": "testpassword",
-        "email": "test@example.com"
-    }
-
-    async with AsyncClient(app=app, base_url="http://test") as ac:
-        # Send a POST request to create a new user
-        response = await ac.post("/users/", json=user_data)
-
-        assert response.status_code == 201
-
-        user_response = response.json()
-        assert user_response["username"] == "testuser"
-        assert "password" not in user_response
-
-
-@pytest.mark.anyio
 async def test_get_all_users():
     """Test retrieving all users."""
 
     async with AsyncClient(app=app, base_url="http://test") as ac:
-        # Send a GET request to retrieve all users
-        response = await ac.get("/users/")
+        # Register a new user and obtain tokens
+        register_data = {
+            "email": "test@example.com",
+            "username": "testuser",
+            "password": "testpassword"
+        }
+        await ac.post("/auth/register", json=register_data)
+
+        login_data = {
+            "username": "test@example.com",
+            "password": "testpassword"
+        }
+        login_response = await ac.post("/auth/login", data=login_data)
+        assert login_response.status_code == 200
+        access_token = login_response.json()["access_token"]
+
+        # Send a GET request to retrieve all users with valid token
+        headers = {"Authorization": f"Bearer {access_token}"}
+        response = await ac.get("/users/", headers=headers)
 
         assert response.status_code == 200
 
@@ -76,8 +72,25 @@ async def test_get_user():
     await user.create()
 
     async with AsyncClient(app=app, base_url="http://test") as ac:
-        # Send a GET request to retrieve the user
-        response = await ac.get(f"/users/{user.id}")
+        # Register a new user and obtain tokens
+        register_data = {
+            "email": "test@example.com",
+            "username": "testuser",
+            "password": "testpassword"
+        }
+        await ac.post("/auth/register", json=register_data)
+
+        login_data = {
+            "username": "test@example.com",
+            "password": "testpassword"
+        }
+        login_response = await ac.post("/auth/login", data=login_data)
+        assert login_response.status_code == 200
+        access_token = login_response.json()["access_token"]
+
+        # Send a GET request to retrieve the user with valid token
+        headers = {"Authorization": f"Bearer {access_token}"}
+        response = await ac.get(f"/users/{user.id}", headers=headers)
 
         assert response.status_code == 200
 
@@ -101,8 +114,25 @@ async def test_update_user():
     }
 
     async with AsyncClient(app=app, base_url="http://test") as ac:
-        # Send a PUT request to update the user
-        response = await ac.put(f"/users/{user.id}", json=updated_user_data)
+        # Register a new user and obtain tokens
+        register_data = {
+            "email": "test@example.com",
+            "username": "testuser",
+            "password": "testpassword"
+        }
+        await ac.post("/auth/register", json=register_data)
+
+        login_data = {
+            "username": "test@example.com",
+            "password": "testpassword"
+        }
+        login_response = await ac.post("/auth/login", data=login_data)
+        assert login_response.status_code == 200
+        access_token = login_response.json()["access_token"]
+
+        # Send a PUT request to update the user with valid token
+        headers = {"Authorization": f"Bearer {access_token}"}
+        response = await ac.put(f"/users/{user.id}", json=updated_user_data, headers=headers)
 
         assert response.status_code == 200
 
@@ -121,11 +151,28 @@ async def test_delete_user():
     await user.create()
 
     async with AsyncClient(app=app, base_url="http://test") as ac:
-        # Send a DELETE request to delete the user
-        response = await ac.delete(f"/users/{user.id}")
+        # Register a new user and obtain tokens
+        register_data = {
+            "email": "test@example.com",
+            "username": "testuser",
+            "password": "testpassword"
+        }
+        await ac.post("/auth/register", json=register_data)
+
+        login_data = {
+            "username": "test@example.com",
+            "password": "testpassword"
+        }
+        login_response = await ac.post("/auth/login", data=login_data)
+        assert login_response.status_code == 200
+        access_token = login_response.json()["access_token"]
+
+        # Send a DELETE request to delete the user with valid token
+        headers = {"Authorization": f"Bearer {access_token}"}
+        response = await ac.delete(f"/users/{user.id}", headers=headers)
 
         assert response.status_code == 204
 
         # Ensure the user no longer exists
-        response = await ac.get(f"/users/{user.id}")
+        response = await ac.get(f"/users/{user.id}", headers=headers)
         assert response.status_code == 404
