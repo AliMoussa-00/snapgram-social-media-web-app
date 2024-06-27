@@ -2,6 +2,7 @@
 """ Defining Routes for the post class """
 
 from fastapi import APIRouter, HTTPException, status
+from app.models.comment import Comment
 from app.models.post import Post, PostCreateRequest, PostResponse, UpdatePostRequest
 from app.models.user import User
 from typing import List
@@ -86,5 +87,27 @@ async def delete_post_by_id(post_id: str) -> dict:
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Post not found!"
         )
+    print('**' * 30)
+    print(f"YYYYYYYY : {post}")
+
+    await Comment.find(Comment.post_id == post.id).delete()
+
     await post.delete()
     return {"message": "Post deleted successfully"}
+
+
+@post_router.delete('/',
+                    status_code=status.HTTP_200_OK,
+                    response_description='Delete all post')
+async def delete_all_post():
+    try:
+        # Fetch all posts
+        posts = await Post.find().to_list()
+
+        # Delete each post
+        for post in posts:
+            await post.delete()
+
+        return {"message": "All posts deleted successfully"}
+    except Exception as e:
+        return {"error": f"Failed to delete posts: {e}"}

@@ -2,9 +2,11 @@
 """ Defining the Post module """
 
 from app.models.common import Common
-from pydantic import BaseModel, Field
-from typing import Optional
+from app.models.comment import Comment
+from pydantic import BaseModel, Field, model_validator
+from typing import Optional, List
 from datetime import datetime
+from beanie import Link
 
 
 class Post(Common):
@@ -12,18 +14,19 @@ class Post(Common):
     Represents a user in the application.
 
     Attributes:
-        user_id (str): Unique user_id for the user.
-        content (str): content of the post.
-        media_type (str): type media of the post.
-        media_url (str): URL of the post.
+        user_id (str): ID of the user who created the post.
+        content (Optional[str]): Text content of the post.
+        media_type (Optional[str]): Type of media (e.g., image, video).
+        media_url (Optional[str]): URL or path to the media associated with the post.
 
     Settings:
         name (str): MongoDB collection name for storing Post documents.
     """
     user_id: str
-    content: str
-    media_type: str
-    media_url: str
+    content: Optional[str] = None
+    media_type: Optional[str] = None
+    media_url: Optional[str] = None
+    comments: Optional[List[Link[Comment]]] = []
 
     class Settings:
         """
@@ -34,21 +37,45 @@ class Post(Common):
         """
         name = 'posts'
 
+    async def add_comment(self, comment: Comment):
+        self.comments.append(comment)
+        await self.save()
+
+    async def remove_comment(self, comment: Comment):
+        self.comments = [cmt for cmt in self.comments if cmt.id != comment.id]
+        await self.save()
+
+    @model_validator(mode='before')
+    def check_content_or_media_url(cls, values):
+        content = values.get('content')
+        media_type = values.get('media_type')
+        if not content and not media_type:
+            raise ValueError('Either content or media_url must be present')
+        return values
+
 
 class PostCreateRequest(BaseModel):
     """
     Post creation request model for POST requests.
 
     Attributes:
-        user_id (str): The ID of the user who created the post.
-        content (str): The content of the post.
-        media_type (str): The type of media associated with the post (e.g., image, video).
-        media_url (str): The URL of the media associated with the post.
+         user_id (str): ID of the user creating the post.
+        content (Optional[str]): Text content of the post.
+        media_type (Optional[str]): Type of media (e.g., image, video).
+        media_url (Optional[str]): URL or path to the media associated with the post.
     """
     user_id: str
-    content: str
-    media_type: str
-    media_url: str
+    content: Optional[str] = None
+    media_type: Optional[str] = None
+    media_url: Optional[str] = None
+
+    @model_validator(mode='before')
+    def check_content_or_media_url(cls, values):
+        content = values.get('content')
+        media_type = values.get('media_type')
+        if not content and not media_type:
+            raise ValueError('Either content or media_url must be present')
+        return values
 
 
 class UpdatePostRequest(BaseModel):
@@ -56,13 +83,21 @@ class UpdatePostRequest(BaseModel):
     Post update request model for PUT requests.
 
     Attributes:
-        content (Optional[str], optional): The content of the post.
-        media_type (Optional[str], optional): The type of media associated with the post (e.g., image, video).
-        media_url (Optional[str], optional): The URL of the media associated with the post.
+        content (Optional[str]): Updated text content of the post.
+        media_type (Optional[str]): Updated type of media (e.g., image, video).
+        media_url (Optional[str]): Updated URL or path to the media associated with the post.
     """
     content: Optional[str] = None
     media_type: Optional[str] = None
     media_url: Optional[str] = None
+
+    @model_validator(mode='before')
+    def check_content_or_media_url(cls, values):
+        content = values.get('content')
+        media_url = values.get('media_url')
+        if not content and not media_url:
+            raise ValueError('Either content or media_url must be present')
+        return values
 
 
 class PostResponse(BaseModel):
@@ -70,19 +105,19 @@ class PostResponse(BaseModel):
     Post response model for API responses.
 
     Attributes:
-        id (str): The ID of the post.
-        user_id (str): The ID of the user who created the post.
-        content (str): The content of the post.
-        media_type (str): The type of media associated with the post (e.g., image, video).
-        media_url (str): The URL of the media associated with the post.
-        created_at (datetime): The timestamp when the post was created.
-        updated_at (datetime): The timestamp when the post was last updated.
+        id (Optional[str]): Unique identifier for the post
+        user_id (str): ID of the user who created the post.
+        content (Optional[str]): Text content of the post.
+        media_type (Optional[str]): Type of media (e.g., image, video).
+        media_url (Optional[str]): URL or path to the media associated with the post.
+        created_at (Optional[datetime]): Timestamp when the post was created.
+        updated_at (Optional[datetime]): Timestamp when the post was last updated.
     """
     id: Optional[str] = Field(alias="_id")
     user_id: str
-    content: str
-    media_type: str
-    media_url: str
+    content: Optional[str] = None
+    media_type: Optional[str] = None
+    media_url: Optional[str] = None
     created_at: Optional[datetime]
     updated_at: Optional[datetime]
 

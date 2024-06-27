@@ -5,6 +5,7 @@ import pytest
 from httpx import AsyncClient
 from beanie import init_beanie
 from motor.motor_asyncio import AsyncIOMotorClient
+from app.models.comment import Comment
 from app.models.post import Post
 from app.models.user import User
 from app.api.app import app
@@ -14,7 +15,7 @@ from app.api.app import app
 async def initialize_db():
     """Initialize the test database."""
     client = AsyncIOMotorClient("mongodb://localhost:27017")
-    await init_beanie(database=client.test_db, document_models=[Post])
+    await init_beanie(database=client.test_db, document_models=[Post, Comment])
     yield
     # Drop the test database after tests are done
     await client.drop_database("test_db")
@@ -161,30 +162,79 @@ async def test_update_post():
 
 
 @pytest.mark.anyio
-async def test_delete_post():
+async def test_delete_post_by_id():
     """Test deleting a post."""
-    # Create a user to test retrieval
     user = User(email="test5@example.com",
                 hashed_password="hashedpassword", username="test5")
     await user.create()
 
     post_data = {
-        "user_id": user.id,
+        "user_id": str(user.id),
         "content": "This is a test post",
         "media_type": "image",
         "media_url": "http://example.com/image.jpg"
     }
+
     async with AsyncClient(app=app, base_url="http://test") as ac:
-        # Send a POST request to create a new post
         post_response = await ac.post("/posts/", json=post_data)
 
         assert post_response.status_code == 201
-
         post = post_response.json()
-        response = await ac.delete(f"/posts/{post['_id']}")
+        post_id = post['_id']  # The correct key is '_id'
 
+        cmt_response = await ac.post("/comments/", json={
+            "post_id": post_id,
+            "user_id": str(user.id),
+            "content": "Good Comment"
+        })
+        assert cmt_response.status_code == 201
+
+        response = await ac.delete(f"/posts/{post_id}")
         assert response.status_code == 200
         assert response.json() == {"message": "Post deleted successfully"}
 
-        response = await ac.delete(f"/posts/{post['_id']}")
+        response = await ac.delete(f"/posts/{post_id}")
         assert response.status_code == 404
+        assert response.json()["detail"] == "Post not found!"
+
+
+@pytest.mark.anyio
+async def test_create_post_with_no_content_and_no_media_url():
+    """Test creating a post with neither content nor media_url should fail."""
+    # Create a user to test retrieval
+    user = User(email="test6@example.com",
+                hashed_password="hashedpassword", username="test6")
+    await user.create()
+
+    post_data = {
+        "user_id": user.id,
+    }
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        # Send a POST request to create a new post
+        response = await ac.post('/posts/', json=post_data)
+
+        assert response.status_code == 422
+
+
+@pytest.mark.anyio
+async def test_update_post_with_no_content_and_no_media_url():
+    """Test updating a post with neither content nor media_url should fail."""
+    user = User(email="test7@example.com",
+                hashed_password="hashedpassword", username="test7")
+    await user.create()
+
+    post_data = {
+        "user_id": user.id,
+        "content": "Original content",
+        "media_type": "image",
+        "media_url": "http://example.com/original.jpg"
+    }
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        # Send a POST request to create a new post
+        post_response = await ac.post("/posts/", json=post_data)
+        post = post_response.json()
+        # Attempt to update the post with no content and no media_url
+        updated_post_data = {}
+        response = await ac.put(f"/posts/{post['_id']}", json=updated_post_data)
+
+        assert response.status_code == 422  # 422 Unprocessable Entity

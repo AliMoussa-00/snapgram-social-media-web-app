@@ -74,3 +74,20 @@ async def delete_user(user_id: str) -> None:
             status_code=status.HTTP_404_NOT_FOUND, detail='User not found')
 
     await user.delete()
+
+
+@router.delete('/',
+               status_code=status.HTTP_200_OK,
+               response_description='Delete all user')
+async def delete_all_users():
+    try:
+        # Fetch all users
+        users = await User.find().to_list()
+
+        # Delete each users
+        for user in users:
+            await user.delete()
+
+        return {"message": "All users deleted successfully"}
+    except Exception as e:
+        return {"error": f"Failed to delete users: {e}"}
