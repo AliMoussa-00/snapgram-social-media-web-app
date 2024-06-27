@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """ Defining the Comment module """
 
-from beanie import BackLink
 from app.models.common import Common
 from pydantic import BaseModel, Field
-from typing import Optional, List
 from datetime import datetime
 
 

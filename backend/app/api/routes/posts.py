@@ -87,15 +87,12 @@ async def delete_post_by_id(post_id: str) -> dict:
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Post not found!"
         )
-    print('**' * 30)
-    print(f"YYYYYYYY : {post}")
-
     await Comment.find(Comment.post_id == post.id).delete()
-
     await post.delete()
     return {"message": "Post deleted successfully"}
 
 
+# For Testing
 @post_router.delete('/',
                     status_code=status.HTTP_200_OK,
                     response_description='Delete all post')

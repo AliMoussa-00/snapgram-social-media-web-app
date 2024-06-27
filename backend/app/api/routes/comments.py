@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """ Defining Routes for the comment class """
 
-from beanie import Link
 from fastapi import APIRouter, status, HTTPException
 from app.models.comment import Comment, CommentCreateRequest, UpdateCommentRequest, CommentResponse
 from app.models.post import Post
@@ -99,6 +98,7 @@ async def delete_comment(comment_id: str) -> dict:
     return {"message": "Comment deleted successfully"}
 
 
+# For Testing
 @comment_router.delete('/',
                        status_code=status.HTTP_200_OK,
                        response_description='Delete all comment')

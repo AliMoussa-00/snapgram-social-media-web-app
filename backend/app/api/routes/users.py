@@ -29,7 +29,6 @@ async def create_user(user_create: UserCreateRequest) -> UserResponse:
             response_model=List[UserResponse])
 async def get_all_users() -> List[UserResponse]:
     users = await User.find().to_list()
-
     return [UserResponse(**user.model_dump(by_alias=True)) for user in users]
 
 
@@ -76,6 +75,7 @@ async def delete_user(user_id: str) -> None:
     await user.delete()
 
 
+# For Testing
 @router.delete('/',
                status_code=status.HTTP_200_OK,
                response_description='Delete all user')
