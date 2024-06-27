@@ -10,10 +10,10 @@ from app.api.auth.auth import router as AuthRouter
 
 
 app = FastAPI()
-app.include_router(post_router, tags=['Post'], prefix='/posts')
 
 app.include_router(AuthRouter, tags=['auth'], prefix='/auth')
 app.include_router(Router, tags=['Users'], prefix='/users')
+app.include_router(post_router, tags=['Post'], prefix='/posts')
 
 
 @app.on_event('startup')
@@ -31,5 +31,5 @@ async def read_root() -> dict:
 
 if __name__ == '__main__':
     import uvicorn
-    from core.config import HOST, PORT
-    uvicorn.run(app, host=HOST, port=PORT)
+    from core.config import CONFIG
+    uvicorn.run(app, host=CONFIG.host, port=CONFIG.port)

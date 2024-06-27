@@ -5,10 +5,11 @@ from typing import Optional
 from fastapi.security import OAuth2PasswordRequestForm
 from app.models.user import User, UserCreateRequest, UserResponse
 from app.utils.auth import hash_password, verify_password, create_access_token, create_refresh_access_token
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, Body, HTTPException, status, Depends
 from app.api.dependencies import get_current_user, oauth2_scheme
-from pydantic import BaseModel
+from pydantic import EmailStr
 from app.models.token import Token, BlackListedTokens
+from app.utils.mail import send_password_reset_email
 
 
 router = APIRouter()
@@ -74,7 +75,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 @router.get('/me',
             response_description="get the current authenticated user",
             response_model=UserResponse)
-async def get_current_user(current_user: User = Depends(get_current_user)) -> UserResponse:
+async def get_me(current_user: User = Depends(get_current_user)) -> UserResponse:
     """get the current authenticated user"""
 
     return UserResponse(**current_user.model_dump(by_alias=True))
@@ -90,3 +91,48 @@ async def logout_user(
     black_listed_token = BlackListedTokens(token=token)
     await black_listed_token.create()
     return {"message": "Successfully logged out"}
+
+
+# Body(..., embed=True) means that this parameter must be included in the request body
+# and should be embedded under a single key.
+@router.post('/forgot-password',
+             status_code=status.HTTP_200_OK,
+             response_model=dict)
+async def forgot_password(email: EmailStr = Body(..., embed=True)) -> dict:
+    """Send password reset email."""
+    user = await User.find_one(User.email == email)
+    if not user:
+        raise HTTPException(404, "No user found with that email")
+
+    payload = {"email": user.email}
+    token = create_access_token(payload)
+
+    await send_password_reset_email(email, token)
+
+    # print the token so i can use it in the next request
+    # print(f"XXXXX: reset token = {token}\n")
+    return {"message": "Message sent to user's email successfully"}
+
+
+@router.post("/reset-password/{token}",
+             status_code=status.HTTP_200_OK,
+             response_model=Token)
+async def reset_password(token: str, new_pwd: str = Body(..., embed=True)) -> Token:
+    """reset the user's password"""
+
+    user = await get_current_user(token)
+    if not user:
+        raise HTTPException(404, "No user found with that email")
+
+    user.hashed_password = hash_password(new_pwd)
+    await user.save()
+
+    # creating new tokens and login the user
+    payload = {
+        "user_id": user.id,
+        "email": user.email
+    }
+
+    access_token = create_access_token(payload)
+    refresh_token = create_refresh_access_token(payload)
+    return Token(access_token=access_token, refresh_token=refresh_token, token_type=None)

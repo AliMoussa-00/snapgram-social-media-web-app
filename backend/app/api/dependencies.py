@@ -5,7 +5,7 @@ from app.models.user import User
 from app.models.token import BlackListedTokens
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from app.core.config import JWT_SECRET_KEY
+from app.core.config import CONFIG
 import jwt
 
 # typically used for routes that require OAuth2-style authentication using username/email and password.
@@ -41,17 +41,21 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
         raise credentials_exception
 
     try:
-        payload = jwt.decode(token, JWT_SECRET_KEY, ALGORITHM)
-        email: str = payload['email']
-        user_id: str = payload['user_id']
-        if not email or not user_id:
+        payload = jwt.decode(token, CONFIG.jwt_secret_key, ALGORITHM)
+        email: str = payload.get('email', None)
+        user_id: str = payload.get('user_id', None)
+        if not email and not user_id:
             raise credentials_exception
     except jwt.PyJWTError:
         raise credentials_exception
 
-    # I also have the user_id in the token should i use it instead ?!
-    # user = await User.find_one(User.email == email)
-    user = await User.get(user_id)
+    if user_id:
+        # get user by id
+        user = await User.get(user_id)
+    else:
+        # get user by email
+        user = await User.find_one(User.email == email)
+
     if not user:
         raise credentials_exception
 

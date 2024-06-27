@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 import bcrypt
 import jwt
-from app.core.config import JWT_SECRET_KEY, JWT_REFRESH_SECRET_KEY
+from app.core.config import CONFIG
 
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 30  # 30 minutes
@@ -61,7 +61,7 @@ def create_access_token(payload: dict, expires_delta: Optional[timedelta] = None
 
     to_encode.update({'exp': expire})
     encoded_jwt = jwt.encode(
-        to_encode, key=JWT_SECRET_KEY, algorithm=ALGORITHM)
+        to_encode, key=CONFIG.jwt_secret_key, algorithm=ALGORITHM)
     return encoded_jwt
 
 
@@ -84,5 +84,5 @@ def create_refresh_access_token(payload: dict, expires_delta: Optional[timedelta
 
     to_encode.update({'exp': expire})
     encoded_jwt = jwt.encode(
-        to_encode, key=JWT_REFRESH_SECRET_KEY, algorithm=ALGORITHM)
+        to_encode, key=CONFIG.jwt_refresh_secret_key, algorithm=ALGORITHM)
     return encoded_jwt
