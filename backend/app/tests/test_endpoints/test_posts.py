@@ -8,6 +8,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from app.models.comment import Comment
 from app.models.post import Post
 from app.models.user import User
+from app.models.like import Like
 from app.api.app import app
 
 
@@ -15,7 +16,7 @@ from app.api.app import app
 async def initialize_db():
     """Initialize the test database."""
     client = AsyncIOMotorClient("mongodb://localhost:27017")
-    await init_beanie(database=client.test_db, document_models=[Post, Comment])
+    await init_beanie(database=client.test_db, document_models=[Post, Comment, Like])
     yield
     # Drop the test database after tests are done
     await client.drop_database("test_db")

@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from app.models.engine.db_storage import init_db
 from app.api.routes.posts import post_router
 from app.api.routes.comments import comment_router
+from app.api.routes.likes import like_router
 
 from app.api.routes.users import router as Router
 
@@ -12,6 +13,7 @@ from app.api.routes.users import router as Router
 app = FastAPI()
 app.include_router(post_router, tags=['Post'], prefix='/posts')
 app.include_router(comment_router, tags=['Comment'], prefix='/comments')
+app.include_router(like_router, tags=['Like'], prefix='/likes')
 
 app.include_router(Router, tags=['User'], prefix='/users')
 

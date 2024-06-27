@@ -88,7 +88,7 @@ async def test_get_all_comments():
 
 
 @pytest.mark.anyio
-async def test_get_all_comments_of_post(create_post, create_comment):
+async def test_get_all_comments_of_post(create_post):
     async with AsyncClient(app=app, base_url="http://test") as ac:
         response = await ac.get(f"/comments/post/{create_post.id}")
         assert response.status_code == 200

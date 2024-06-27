@@ -3,6 +3,7 @@
 
 from app.models.common import Common
 from app.models.comment import Comment
+from app.models.like import Like
 from pydantic import BaseModel, Field, model_validator
 from typing import Optional, List
 from datetime import datetime
@@ -27,6 +28,7 @@ class Post(Common):
     media_type: Optional[str] = None
     media_url: Optional[str] = None
     comments: Optional[List[Link[Comment]]] = []
+    likes: Optional[List[Link[Like]]] = []
 
     class Settings:
         """
@@ -43,6 +45,14 @@ class Post(Common):
 
     async def remove_comment(self, comment: Comment):
         self.comments = [cmt for cmt in self.comments if cmt.id != comment.id]
+        await self.save()
+
+    async def add_like(self, like: Like):
+        self.likes.append(like)
+        await self.save()
+
+    async def remove_like(self, like: Like):
+        self.likes = [lk for lk in self.likes if lk.id != like.id]
         await self.save()
 
     @model_validator(mode='before')

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """ Defining the Comment module """
 
+from typing import Optional
 from app.models.common import Common
 from pydantic import BaseModel, Field
 from datetime import datetime
