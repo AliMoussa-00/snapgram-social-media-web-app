@@ -45,9 +45,12 @@ async def test_create_post():
         assert login_response.status_code == 200
         access_token = login_response.json()["access_token"]
 
+        # Fetch the user from the database to get the actual user ID
+        user = await User.find_one(User.username == "testuser")
+
         # Create a new post with valid token
         post_data = {
-            "user_id": "some_user_id",
+            "user_id": str(user.id),
             "content": "This is a test post.",
             "media_type": "image",
             "media_url": "http://example.com/image.jpg"

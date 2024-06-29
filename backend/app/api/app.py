@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """ FastApi server. """
 
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI
 from app.models.engine.db_storage import init_db
 from app.api.routes.posts import post_router
 from app.api.routes.comments import comment_router
@@ -18,7 +18,6 @@ app.include_router(Router, tags=['Users'], prefix='/users')
 app.include_router(post_router, tags=['Post'], prefix='/posts')
 app.include_router(comment_router, tags=['Comment'], prefix='/comments')
 app.include_router(like_router, tags=['Like'], prefix='/likes')
-
 
 
 @app.on_event('startup')

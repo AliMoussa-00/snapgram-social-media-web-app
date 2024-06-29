@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """Defining hashing and token generation functions"""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 import bcrypt
 import jwt
 from app.core.config import CONFIG
 
 
-ACCESS_TOKEN_EXPIRE_MINUTES = 30  # 30 minutes
+ACCESS_TOKEN_EXPIRE_MINUTES = 2  # 30 minutes
 REFRESH_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 ALGORITHM = "HS256"
 
@@ -55,9 +55,10 @@ def create_access_token(payload: dict, expires_delta: Optional[timedelta] = None
 
     to_encode = payload.copy()
     if expires_delta:
-        expire = datetime.now() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.now() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now(timezone.utc) + \
+            timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 
     to_encode.update({'exp': expire})
     encoded_jwt = jwt.encode(
@@ -78,9 +79,10 @@ def create_refresh_access_token(payload: dict, expires_delta: Optional[timedelta
     """
     to_encode = payload.copy()
     if expires_delta:
-        expire = datetime.now() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.now() + timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now(timezone.utc) + \
+            timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES)
 
     to_encode.update({'exp': expire})
     encoded_jwt = jwt.encode(

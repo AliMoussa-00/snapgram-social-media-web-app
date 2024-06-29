@@ -54,7 +54,7 @@ async def get_all_posts_of_user(user_id: str, current_user: User = Depends(get_c
                  status_code=status.HTTP_200_OK,
                  response_description='Get Post By Id')
 async def get_post_by_id(post_id: str, current_user: User = Depends(get_current_user)) -> PostResponse:
-    post = await Post.get(post_id)
+    post = await Post.get(post_id, fetch_links=True)
     if not post:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

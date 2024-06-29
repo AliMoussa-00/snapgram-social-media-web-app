@@ -46,7 +46,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
         user_id: str = payload.get('user_id', None)
         if not email and not user_id:
             raise credentials_exception
-    except jwt.PyJWTError:
+    except (jwt.PyJWTError, jwt.ExpiredSignatureError, jwt.InvalidTokenError):
         raise credentials_exception
 
     if user_id:

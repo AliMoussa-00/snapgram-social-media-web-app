@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """ Defining Routes for the like class """
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
+from app.api.dependencies import get_current_user
 from app.models.like import Like, LikeCreateRequest, LikeResponse
 from app.models.post import Post
 from app.models.user import User
@@ -13,7 +14,7 @@ like_router = APIRouter()
 @like_router.post('/',
                   status_code=status.HTTP_201_CREATED,
                   response_description='Like  Post')
-async def like_post(like_create: LikeCreateRequest) -> LikeResponse:
+async def like_post(like_create: LikeCreateRequest, current_user: User = Depends(get_current_user)) -> LikeResponse:
     post = await Post.get(like_create.post_id)
     if not post:
         raise HTTPException(
@@ -47,7 +48,7 @@ async def like_post(like_create: LikeCreateRequest) -> LikeResponse:
 @like_router.delete('/{like_id}',
                     status_code=status.HTTP_200_OK,
                     response_description='Unlike Post')
-async def unlike_post(like_id: str) -> dict:
+async def unlike_post(like_id: str, current_user: User = Depends(get_current_user)) -> dict:
     like = await Like.get(like_id)
     if not like:
         raise HTTPException(
@@ -55,7 +56,7 @@ async def unlike_post(like_id: str) -> dict:
             detail='Like not found'
         )
 
-    post = await Post.get(like.post_id)
+    post = await Post.get(like.post_id, fetch_links=True)
     if not post:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -71,7 +72,7 @@ async def unlike_post(like_id: str) -> dict:
 @like_router.get('/post/{post_id}',
                  status_code=status.HTTP_200_OK,
                  response_description='Get all likes of a post')
-async def get_all_likes_of_post(post_id: str) -> List[LikeResponse]:
+async def get_all_likes_of_post(post_id: str, current_user: User = Depends(get_current_user)) -> List[LikeResponse]:
     post = await Post.get(post_id, fetch_links=True)
     if not post:
         raise HTTPException(
