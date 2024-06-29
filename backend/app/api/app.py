@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """ FastApi server. """
 
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI
 from app.models.engine.db_storage import init_db
 from app.api.routes.posts import post_router
 
