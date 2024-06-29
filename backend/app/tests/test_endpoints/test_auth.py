@@ -1,8 +1,11 @@
 # test_authentication.py
 
+from datetime import datetime, timedelta, timezone
+import jwt
 import pytest
 from httpx import AsyncClient
 from app.api.app import app
+from app.core.config import CONFIG
 from app.models.token import BlackListedTokens
 from app.models.user import User
 from beanie import init_beanie
@@ -127,3 +130,64 @@ async def test_logout_user():
         # Try to use the blacklisted token to access a protected route
         response = await ac.get("/users/", headers={"Authorization": f"Bearer {access_token}"})
         assert response.status_code == 401
+
+
+# #####################
+# testing refresh token
+@pytest.mark.anyio
+async def test_refresh_token_success():
+    register_data = {
+        "email": "test_refresh_token@example.com",
+        "username": "test_refresh_token_user",
+        "hashed_password": "hashed_password"
+    }
+    user = User(**register_data)
+    await user.create()
+
+    payload = {
+        "user_id": user.id,
+        "email": user.email,
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=15)
+    }
+    refresh_token = jwt.encode(
+        payload, CONFIG.jwt_refresh_secret_key, algorithm="HS256")
+
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        response = await ac.post("/auth/refresh-token", json={"refresh_token": refresh_token})
+        assert response.status_code == 200
+        data = response.json()
+        assert "access_token" in data
+        assert "refresh_token" in data
+
+
+@pytest.mark.anyio
+async def test_refresh_token_expired():
+    register_data = {
+        "email": "test_exp_refresh_token@example.com",
+        "username": "test_exp_refresh_token_user",
+        "hashed_password": "hashed_password"
+    }
+    user = User(**register_data)
+    await user.create()
+
+    payload = {
+        "user_id": user.id,
+        "email": user.email,
+        # expired token
+        "exp": datetime.now(timezone.utc) - timedelta(minutes=1)
+    }
+    expired_refresh_token = jwt.encode(
+        payload, CONFIG.jwt_refresh_secret_key, algorithm="HS256")
+
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        response = await ac.post("/auth/refresh-token", json={"refresh_token": expired_refresh_token})
+        assert response.status_code == 401
+        assert response.json() == {"detail": "Refresh token expired"}
+
+
+@pytest.mark.anyio
+async def test_refresh_token_invalid():
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        response = await ac.post("/auth/refresh-token", json={"refresh_token": "invalid_token"})
+        assert response.status_code == 401
+        assert response.json() == {"detail": "Invalid refresh token"}

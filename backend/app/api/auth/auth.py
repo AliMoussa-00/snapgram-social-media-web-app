@@ -3,6 +3,8 @@
 
 from typing import Optional
 from fastapi.security import OAuth2PasswordRequestForm
+from jwt import ExpiredSignatureError, InvalidTokenError, decode
+from app.core.config import CONFIG
 from app.models.user import User, UserCreateRequest, UserResponse
 from app.utils.auth import hash_password, verify_password, create_access_token, create_refresh_access_token
 from fastapi import APIRouter, Body, HTTPException, status, Depends
@@ -136,3 +138,58 @@ async def reset_password(token: str, new_pwd: str = Body(..., embed=True)) -> To
     access_token = create_access_token(payload)
     refresh_token = create_refresh_access_token(payload)
     return Token(access_token=access_token, refresh_token=refresh_token, token_type=None)
+
+
+@router.post('/refresh-token', response_model=Token)
+async def refresh_token(refresh_token: str = Body(..., embed=True)):
+    """
+    Refresh the access token using the refresh token.
+
+    Args:
+        refresh_token (str): The refresh token.
+
+    Returns:
+        Token: New access token and refresh token.
+    """
+    try:
+        payload = decode(
+            refresh_token, CONFIG.jwt_refresh_secret_key, algorithms=["HS256"])
+
+        user_id: str = payload.get("user_id")
+        email: str = payload.get("email")
+        if not user_id or not email:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid refresh token",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
+
+        if user_id:
+            user = await User.get(user_id)
+        else:
+            user = await User.find_one(User.email == email)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
+
+        # Issue new tokens
+        new_payload = {"user_id": user.id, "email": user.email}
+        new_access_token = create_access_token(new_payload)
+        new_refresh_token = create_refresh_access_token(new_payload)
+        return Token(access_token=new_access_token, refresh_token=new_refresh_token, token_type="Bearer")
+
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token expired",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    except InvalidTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
