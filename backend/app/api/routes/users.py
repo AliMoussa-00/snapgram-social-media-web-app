@@ -2,52 +2,37 @@
 """ Defining Routes for the user class """
 
 from typing import List
-from fastapi import APIRouter, HTTPException, status
-from app.models.user import User, UserCreateRequest, UserResponse, UpdateUserRequest
-from app.utils.hashing import hash_password
+from fastapi import APIRouter, HTTPException, status, Depends
+from app.models.user import User, UserResponse, UpdateUserRequest
+from app.api.dependencies import get_current_user
+from app.utils.auth import hash_password
 
 router = APIRouter()
 
 
-@router.post('/',
-             status_code=status.HTTP_201_CREATED,
-             response_description='create a user',
-             response_model=UserResponse)
-async def create_user(user_create: UserCreateRequest) -> UserResponse:
-    user_data = user_create.model_dump(exclude_unset=True)
-    if 'password' in user_data:
-        user_data['hashed_password'] = hash_password(user_data.pop('password'))
-
-    user = User(**user_data)
-    await user.create()
-    return UserResponse(**user.model_dump(by_alias=True))
-
-
 @router.get('/',
-            status_code=status.HTTP_200_OK,
-            response_description='get all users as a list',
             response_model=List[UserResponse])
-async def get_all_users() -> List[UserResponse]:
+async def get_all_users(current_user: User = Depends(get_current_user)) -> List[UserResponse]:
+    """Get all users"""
     users = await User.find().to_list()
     return [UserResponse(**user.model_dump(by_alias=True)) for user in users]
 
 
 @router.get('/{user_id}',
-            response_description='get a user based on id',
             response_model=UserResponse)
-async def get_user(user_id: str) -> UserResponse:
+async def get_user(user_id: str, current_user: User = Depends(get_current_user)) -> UserResponse:
+    """Get a user by ID"""
     user = await User.get(user_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail='User not found')
-
     return UserResponse(**user.model_dump(by_alias=True))
 
 
 @router.put('/{user_id}',
-            response_description='updating a user',
             response_model=UserResponse)
-async def update_user(user_id: str, updated_user: UpdateUserRequest) -> UserResponse:
+async def update_user(user_id: str, updated_user: UpdateUserRequest, current_user: User = Depends(get_current_user)) -> UserResponse:
+    """Update a user by ID"""
     user = await User.get(user_id)
     if not user:
         raise HTTPException(
@@ -64,14 +49,13 @@ async def update_user(user_id: str, updated_user: UpdateUserRequest) -> UserResp
 
 
 @router.delete('/{user_id}',
-               status_code=status.HTTP_204_NO_CONTENT,
-               response_description='deleting a user')
-async def delete_user(user_id: str) -> None:
+               status_code=status.HTTP_204_NO_CONTENT)
+async def delete_user(user_id: str, current_user: User = Depends(get_current_user)) -> None:
+    """Delete a user by ID"""
     user = await User.get(user_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail='User not found')
-
     await user.delete()
 
 

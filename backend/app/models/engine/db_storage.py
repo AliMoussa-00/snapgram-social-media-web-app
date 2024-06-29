@@ -2,9 +2,10 @@
 """ Module for MongoDB database connection. """
 from beanie import init_beanie
 from motor.motor_asyncio import AsyncIOMotorClient
-from app.core.config import MONGODB_URL, DB_NAME
+from app.core.config import CONFIG
 from app.models.post import Post
 from app.models.user import User
+from app.models.token import BlackListedTokens
 from app.models.comment import Comment
 from app.models.like import Like
 
@@ -16,9 +17,8 @@ async def init_db():
     Note: Beanie is an async MongoDB ORM for Python.
     """
     try:
-        client = AsyncIOMotorClient(MONGODB_URL)
-        database = client[DB_NAME]
-        await init_beanie(database, document_models=[User, Post, Comment, Like])
-        print("Database connection established successfully.")
+        client = AsyncIOMotorClient(CONFIG.mongodb_url)
+        database = client[CONFIG.db_name]
+        await init_beanie(database, document_models=[User, Post, Comment, Like, BlackListedTokens])
     except Exception as e:
         raise ConnectionError(f"Failed to connect to the database: {e}")

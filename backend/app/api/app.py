@@ -1,21 +1,24 @@
 #!/usr/bin/env python3
 """ FastApi server. """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from app.models.engine.db_storage import init_db
 from app.api.routes.posts import post_router
 from app.api.routes.comments import comment_router
 from app.api.routes.likes import like_router
 
 from app.api.routes.users import router as Router
+from app.api.auth.auth import router as AuthRouter
 
 
 app = FastAPI()
+
+app.include_router(AuthRouter, tags=['auth'], prefix='/auth')
+app.include_router(Router, tags=['Users'], prefix='/users')
 app.include_router(post_router, tags=['Post'], prefix='/posts')
 app.include_router(comment_router, tags=['Comment'], prefix='/comments')
 app.include_router(like_router, tags=['Like'], prefix='/likes')
 
-app.include_router(Router, tags=['User'], prefix='/users')
 
 
 @app.on_event('startup')
@@ -33,5 +36,5 @@ async def read_root() -> dict:
 
 if __name__ == '__main__':
     import uvicorn
-    from core.config import HOST, PORT
-    uvicorn.run(app, host=HOST, port=PORT)
+    from core.config import CONFIG
+    uvicorn.run(app, host=CONFIG.host, port=CONFIG.port)
