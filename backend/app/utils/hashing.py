@@ -20,6 +20,13 @@ def hash_password(password: str) -> str:
 
 def verify_password(password: str, hashed_password) -> bool:
     """
-    verifying the password
+    Verifies the provided password against the hashed password.
+
+    Args:
+        password (str): The plain text password to verify.
+        hashed_password (str): The hashed password to verify against.
+
+    Returns:
+        bool: True if the password matches, False otherwise.
     """
     return bcrypt.checkpw(password.encode(), hashed_password.encode())
