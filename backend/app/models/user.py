@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """ Defining the User module """
 
+from beanie import Link
 from pydantic import BaseModel, EmailStr, Field
-from typing import Optional
+from typing import List, Optional
 from app.models.common import Common
 from datetime import datetime
 
@@ -29,6 +30,8 @@ class User(Common):
     full_name: Optional[str] = None
     bio: Optional[str] = None
     profile_picture_url: Optional[str] = None
+    followers: Optional[List[Link["User"]]] = []
+    following: Optional[List[Link["User"]]] = []
 
     class Settings:
         """

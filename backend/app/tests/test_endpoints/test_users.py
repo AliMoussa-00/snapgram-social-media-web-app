@@ -177,3 +177,158 @@ async def test_delete_user():
         # Ensure the user no longer exists
         response = await ac.get(f"/users/{user.id}", headers=headers)
         assert response.status_code == 404
+
+
+@pytest.mark.anyio
+async def test_follow_user():
+    """Test following a user."""
+    # Create a user to follow
+    user = User(email="test5@example.com",
+                hashed_password="hashedpassword", username="testuser5")
+    await user.create()
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        # Register two new users
+        register_data_user1 = {
+            "email": "user1@example.com",
+            "username": "user1",
+            "password": "testpassword"
+        }
+        register_data_user2 = {
+            "email": "user2@example.com",
+            "username": "user2",
+            "password": "testpassword"
+        }
+        await ac.post("/auth/register", json=register_data_user1)
+        await ac.post("/auth/register", json=register_data_user2)
+
+        # Login user1 to get access token
+        login_data_user1 = {
+            "username": "user1@example.com",
+            "password": "testpassword"
+        }
+        login_response_user1 = await ac.post("/auth/login", data=login_data_user1)
+        assert login_response_user1.status_code == 200
+        access_token_user1 = login_response_user1.json()["access_token"]
+        headers = {"Authorization": f"Bearer {access_token_user1}"}
+
+        # Follow user2 using user1's access token
+        follow_response = await ac.post(f"/users/follow/{user.id}", headers=headers)
+        assert follow_response.status_code == 200
+        assert follow_response.json() == {"message": "follow successfully"}
+
+
+@pytest.mark.anyio
+async def test_unfollow_user():
+    """Test unfollowing a user."""
+    # Create a user to follow
+    user = User(email="test6@example.com",
+                hashed_password="hashedpassword", username="testuser6")
+    await user.create()
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        # Register two new users
+        register_data_user1 = {
+            "email": "user1@example.com",
+            "username": "user1",
+            "password": "testpassword"
+        }
+        register_data_user2 = {
+            "email": "user2@example.com",
+            "username": "user2",
+            "password": "testpassword"
+        }
+        await ac.post("/auth/register", json=register_data_user1)
+        await ac.post("/auth/register", json=register_data_user2)
+
+        # Login user1 to get access token
+        login_data_user1 = {
+            "username": "user1@example.com",
+            "password": "testpassword"
+        }
+        login_response_user1 = await ac.post("/auth/login", data=login_data_user1)
+        assert login_response_user1.status_code == 200
+        access_token_user1 = login_response_user1.json()["access_token"]
+        headers = {"Authorization": f"Bearer {access_token_user1}"}
+
+        # Follow user using user1's access token
+        follow_response = await ac.post(f"/users/follow/{user.id}", headers=headers)
+        assert follow_response.status_code == 200
+
+        # Print the user ID and URL being requested
+        print(f"User ID to unfollow: {user.id}")
+        print(f"DELETE URL: /users/unfollow/{user.id}")
+
+        # Unfollow user using user1's access token
+        unfollow_response = await ac.delete(f"/users/unfollow/{user.id}", headers=headers)
+        print(
+            f"Unfollow Response Status Code: {unfollow_response.status_code}")
+        print(f"Unfollow Response JSON: {unfollow_response.json()}")
+        assert unfollow_response.status_code == 200
+        assert unfollow_response.json()["message"] == "Unfollowed successfully"
+
+
+@pytest.mark.anyio
+async def test_get_followers():
+    """Test retrieving followers of a user."""
+    # Create a user
+    user = User(email="test6@example.com",
+                hashed_password="hashedpassword", username="testuser6")
+    await user.create()
+
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        # Register a new user and obtain tokens
+        register_data = {
+            "email": "test@example.com",
+            "username": "testuser",
+            "password": "testpassword"
+        }
+        await ac.post("/auth/register", json=register_data)
+
+        login_data = {
+            "username": "test@example.com",
+            "password": "testpassword"
+        }
+        login_response = await ac.post("/auth/login", data=login_data)
+        assert login_response.status_code == 200
+        access_token = login_response.json()["access_token"]
+
+        # Send a GET request to retrieve followers
+        headers = {"Authorization": f"Bearer {access_token}"}
+        response = await ac.get(f"/users/{user.id}/followers", headers=headers)
+
+        assert response.status_code == 200
+        followers_response = response.json()
+        assert isinstance(followers_response, list)
+
+
+@pytest.mark.anyio
+async def test_get_following():
+    """Test retrieving users a user is following."""
+    # Create a user
+    user = User(email="test6@example.com",
+                hashed_password="hashedpassword", username="testuser6")
+    await user.create()
+
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        # Register a new user and obtain tokens
+        register_data = {
+            "email": "test@example.com",
+            "username": "testuser",
+            "password": "testpassword"
+        }
+        await ac.post("/auth/register", json=register_data)
+
+        login_data = {
+            "username": "test@example.com",
+            "password": "testpassword"
+        }
+        login_response = await ac.post("/auth/login", data=login_data)
+        assert login_response.status_code == 200
+        access_token = login_response.json()["access_token"]
+
+        # Send a GET request to retrieve following users
+        headers = {"Authorization": f"Bearer {access_token}"}
+        response = await ac.get(f"/users/{user.id}/following", headers=headers)
+
+        assert response.status_code == 200
+        following_response = response.json()
+        assert isinstance(following_response, list)

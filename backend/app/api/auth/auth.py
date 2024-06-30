@@ -14,13 +14,13 @@ from app.models.token import Token, BlackListedTokens
 from app.utils.mail import send_password_reset_email
 
 
-router = APIRouter()
+auth_router = APIRouter()
 
 
-@router.post('/register',
-             status_code=status.HTTP_201_CREATED,
-             response_description='Register a new user',
-             response_model=Token)
+@auth_router.post('/register',
+                  status_code=status.HTTP_201_CREATED,
+                  response_description='Register a new user',
+                  response_model=Token)
 async def sign_up(user_create: UserCreateRequest) -> Token:
     """Register a new user"""
     user_data = user_create.model_dump(exclude_unset=True)
@@ -51,7 +51,7 @@ async def sign_up(user_create: UserCreateRequest) -> Token:
     return Token(access_token=access_token, refresh_token=refresh_token, token_type=None)
 
 
-@router.post('/login', response_model=Token)
+@auth_router.post('/login', response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     """
     Login the user
@@ -74,18 +74,18 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     return Token(access_token=access_token, refresh_token=refresh_token, token_type=None)
 
 
-@router.get('/me',
-            response_description="get the current authenticated user",
-            response_model=UserResponse)
+@auth_router.get('/me',
+                 response_description="get the current authenticated user",
+                 response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)) -> UserResponse:
     """get the current authenticated user"""
 
     return UserResponse(**current_user.model_dump(by_alias=True))
 
 
-@router.post('/logout',
-             response_description="logout a user",
-             response_model=dict)
+@auth_router.post('/logout',
+                  response_description="logout a user",
+                  response_model=dict)
 async def logout_user(
         current_user: User = Depends(get_current_user),
         token: str = Depends(oauth2_scheme)) -> dict:
@@ -97,9 +97,9 @@ async def logout_user(
 
 # Body(..., embed=True) means that this parameter must be included in the request body
 # and should be embedded under a single key.
-@router.post('/forgot-password',
-             status_code=status.HTTP_200_OK,
-             response_model=dict)
+@auth_router.post('/forgot-password',
+                  status_code=status.HTTP_200_OK,
+                  response_model=dict)
 async def forgot_password(email: EmailStr = Body(..., embed=True)) -> dict:
     """Send password reset email."""
     user = await User.find_one(User.email == email)
@@ -116,9 +116,9 @@ async def forgot_password(email: EmailStr = Body(..., embed=True)) -> dict:
     return {"message": "Message sent to user's email successfully"}
 
 
-@router.post("/reset-password/{token}",
-             status_code=status.HTTP_200_OK,
-             response_model=Token)
+@auth_router.post("/reset-password/{token}",
+                  status_code=status.HTTP_200_OK,
+                  response_model=Token)
 async def reset_password(token: str, new_pwd: str = Body(..., embed=True)) -> Token:
     """reset the user's password"""
 
@@ -140,7 +140,7 @@ async def reset_password(token: str, new_pwd: str = Body(..., embed=True)) -> To
     return Token(access_token=access_token, refresh_token=refresh_token, token_type=None)
 
 
-@router.post('/refresh-token', response_model=Token)
+@auth_router.post('/refresh-token', response_model=Token)
 async def refresh_token(refresh_token: str = Body(..., embed=True)):
     """
     Refresh the access token using the refresh token.

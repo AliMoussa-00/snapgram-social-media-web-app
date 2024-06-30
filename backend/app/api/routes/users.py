@@ -7,19 +7,19 @@ from app.models.user import User, UserResponse, UpdateUserRequest
 from app.api.dependencies import get_current_user
 from app.utils.auth import hash_password
 
-router = APIRouter()
+user_router = APIRouter()
 
 
-@router.get('/',
-            response_model=List[UserResponse])
+@user_router.get('/',
+                 response_model=List[UserResponse])
 async def get_all_users(current_user: User = Depends(get_current_user)) -> List[UserResponse]:
     """Get all users"""
     users = await User.find().to_list()
     return [UserResponse(**user.model_dump(by_alias=True)) for user in users]
 
 
-@router.get('/{user_id}',
-            response_model=UserResponse)
+@user_router.get('/{user_id}',
+                 response_model=UserResponse)
 async def get_user(user_id: str, current_user: User = Depends(get_current_user)) -> UserResponse:
     """Get a user by ID"""
     user = await User.get(user_id)
@@ -29,8 +29,8 @@ async def get_user(user_id: str, current_user: User = Depends(get_current_user))
     return UserResponse(**user.model_dump(by_alias=True))
 
 
-@router.put('/{user_id}',
-            response_model=UserResponse)
+@user_router.put('/{user_id}',
+                 response_model=UserResponse)
 async def update_user(user_id: str, updated_user: UpdateUserRequest, current_user: User = Depends(get_current_user)) -> UserResponse:
     """Update a user by ID"""
     user = await User.get(user_id)
@@ -48,8 +48,66 @@ async def update_user(user_id: str, updated_user: UpdateUserRequest, current_use
     return UserResponse(**user.model_dump(by_alias=True))
 
 
-@router.delete('/{user_id}',
-               status_code=status.HTTP_204_NO_CONTENT)
+@user_router.post('/follow/{friend_id}',
+                  status_code=status.HTTP_200_OK,
+                  response_description='follow user')
+async def follow_user(friend_id: str, current_user: User = Depends(get_current_user)) -> dict:
+    friend = await User.get(friend_id, fetch_links=True)
+    if not friend:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail='Friend not found')
+
+    current_user.following.append(friend)
+    friend.followers.append(current_user)
+
+    await current_user.save()
+    await friend.save()
+
+    return {"message": "follow successfully"}
+
+
+@user_router.get('/{user_id}/followers',
+                 status_code=status.HTTP_200_OK,
+                 response_description='List followers')
+async def get_followers(user_id: str, current_user: User = Depends(get_current_user)) -> List[UserResponse]:
+    user = await User.get(user_id, fetch_links=True)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail='User not found')
+    return user.followers
+
+
+@user_router.get('/{user_id}/following',
+                 status_code=status.HTTP_200_OK,
+                 response_description='List following')
+async def get_following(user_id: str, current_user: User = Depends(get_current_user)) -> List[UserResponse]:
+    user = await User.get(user_id, fetch_links=True)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail='User not found')
+    return user.following
+
+
+@user_router.delete('/unfollow/{friend_id}',
+                    status_code=status.HTTP_200_OK,
+                    response_description='Unfollow user')
+async def unfollow_user(friend_id: str, current_user: User = Depends(get_current_user)) -> dict:
+    friend = await User.get(friend_id, fetch_links=True)
+    if not friend:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail='Friend not found')
+    current_user.following = [
+        u for u in current_user.following if u.id != friend_id]
+    friend.followers = [u for u in friend.followers if u.id != current_user.id]
+
+    await current_user.save()
+    await friend.save()
+
+    return {"message": "Unfollowed successfully"}
+
+
+@user_router.delete('/{user_id}',
+                    status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(user_id: str, current_user: User = Depends(get_current_user)) -> None:
     """Delete a user by ID"""
     user = await User.get(user_id)
@@ -60,9 +118,9 @@ async def delete_user(user_id: str, current_user: User = Depends(get_current_use
 
 
 # For Testing
-@router.delete('/',
-               status_code=status.HTTP_200_OK,
-               response_description='Delete all user')
+@user_router.delete('/',
+                    status_code=status.HTTP_200_OK,
+                    response_description='Delete all user')
 async def delete_all_users():
     try:
         # Fetch all users
