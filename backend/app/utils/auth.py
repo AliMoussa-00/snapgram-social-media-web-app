@@ -8,7 +8,7 @@ import jwt
 from app.core.config import CONFIG
 
 
-ACCESS_TOKEN_EXPIRE_MINUTES = 2  # 30 minutes
+ACCESS_TOKEN_EXPIRE_MINUTES = 30 # minutes
 REFRESH_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 ALGORITHM = "HS256"
 

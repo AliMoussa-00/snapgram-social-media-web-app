@@ -157,7 +157,7 @@ async def refresh_token(refresh_token: str = Body(..., embed=True)):
 
         user_id: str = payload.get("user_id")
         email: str = payload.get("email")
-        if not user_id or not email:
+        if not user_id and not email:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid refresh token",
