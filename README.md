@@ -22,6 +22,7 @@ Snapgram allows users to sign up, create posts, follow other users, and interact
   git clone https://github.com/AliMoussa-00/snapgram-social-media-web-app.git
   ```
   
-2. Follow the instructions in the respective README files for the backend and frontend.
-  [Backend]([snapgram-social-media-web-app/backend at main · AliMoussa-00/snapgram-social-media-web-app (github.com)](https://github.com/AliMoussa-00/snapgram-social-media-web-app/tree/main/backend))
-  [Frontend]([snapgram-social-media-web-app/frontend at main · AliMoussa-00/snapgram-social-media-web-app (github.com)](https://github.com/AliMoussa-00/snapgram-social-media-web-app/tree/main/frontend))
+2. Follow the instructions in the respective README files for the 
+  [Backend](https://github.com/AliMoussa-00/snapgram-social-media-web-app/tree/main/backend)
+and
+  [Frontend](https://github.com/AliMoussa-00/snapgram-social-media-web-app/tree/main/frontend).
