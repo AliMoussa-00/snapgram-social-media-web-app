@@ -18,7 +18,7 @@ class Token(BaseModel):
     """
     access_token: str
     refresh_token: str
-    token_type: Optional[str] = 'bearer'
+    token_type: Optional[str] = 'Bearer'
 
 
 class BlackListedTokens(Document):

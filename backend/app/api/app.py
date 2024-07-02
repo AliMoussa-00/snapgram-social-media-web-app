@@ -13,11 +13,11 @@ from app.api.auth.auth import auth_router  # router as AuthRouter
 
 app = FastAPI()
 
-app.include_router(auth_router, tags=['auth'], prefix='/auth')
+app.include_router(auth_router, tags=['Auth'], prefix='/auth')
 app.include_router(user_router, tags=['Users'], prefix='/users')
-app.include_router(post_router, tags=['Post'], prefix='/posts')
-app.include_router(comment_router, tags=['Comment'], prefix='/comments')
-app.include_router(like_router, tags=['Like'], prefix='/likes')
+app.include_router(post_router, tags=['Posts'], prefix='/posts')
+app.include_router(comment_router, tags=['Comments'], prefix='/comments')
+app.include_router(like_router, tags=['Likes'], prefix='/likes')
 
 
 @app.on_event('startup')

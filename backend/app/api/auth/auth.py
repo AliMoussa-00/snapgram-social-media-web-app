@@ -48,7 +48,7 @@ async def sign_up(user_create: UserCreateRequest) -> Token:
 
     access_token = create_access_token(payload)
     refresh_token = create_refresh_access_token(payload)
-    return Token(access_token=access_token, refresh_token=refresh_token, token_type=None)
+    return Token(access_token=access_token, refresh_token=refresh_token)
 
 
 @auth_router.post('/login', response_model=Token)
@@ -71,7 +71,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
     access_token = create_access_token(payload)
     refresh_token = create_refresh_access_token(payload)
-    return Token(access_token=access_token, refresh_token=refresh_token, token_type=None)
+    return Token(access_token=access_token, refresh_token=refresh_token)
 
 
 @auth_router.get('/me',
@@ -136,7 +136,7 @@ async def reset_password(token: str, new_pwd: str = Body(..., embed=True)) -> To
 
     access_token = create_access_token(payload)
     refresh_token = create_refresh_access_token(payload)
-    return Token(access_token=access_token, refresh_token=refresh_token, token_type=None)
+    return Token(access_token=access_token, refresh_token=refresh_token)
 
 
 @auth_router.post('/refresh-token', response_model=Token)
@@ -178,7 +178,7 @@ async def refresh_token(refresh_token: str = Body(..., embed=True)):
         new_payload = {"user_id": user.id, "email": user.email}
         new_access_token = create_access_token(new_payload)
         new_refresh_token = create_refresh_access_token(new_payload)
-        return Token(access_token=new_access_token, refresh_token=new_refresh_token, token_type="Bearer")
+        return Token(access_token=new_access_token, refresh_token=new_refresh_token)
 
     except ExpiredSignatureError:
         raise HTTPException(
