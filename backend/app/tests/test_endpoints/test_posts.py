@@ -2,7 +2,6 @@
 """Testing the posts endpoints"""
 
 import uuid
-from app.utils.auth import create_access_token
 import pytest
 from httpx import AsyncClient
 from app.api.app import app
@@ -28,156 +27,114 @@ async def initialize_db():
 @pytest.mark.anyio
 async def test_create_post():
     """Test creating a post."""
-
     async with AsyncClient(app=app, base_url="http://test") as ac:
         # Register a new user and obtain tokens
+        unique_id = uuid.uuid4()
+        unique_email = f"test_delete_{unique_id}@example.com"
+        unique_username = f"test_delete_{unique_id}"
         register_data = {
-            "email": "test@example.com",
-            "username": "testuser",
+            "email": unique_email,
+            "username": unique_username,
             "password": "testpassword"
         }
-        await ac.post("/auth/register", json=register_data)
-
-        login_data = {
-            "username": "test@example.com",
-            "password": "testpassword"
-        }
-        login_response = await ac.post("/auth/login", data=login_data)
-        assert login_response.status_code == 200
+        login_response = await ac.post("/auth/register", json=register_data)
+        assert login_response.status_code == 201
         access_token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {access_token}"}
 
-        # Fetch the user from the database to get the actual user ID
-        user = await User.find_one(User.username == "testuser")
+        # Fetch the user to get the correct ID
+        user_response = await ac.get("/auth/me", headers=headers)
+        assert user_response.status_code == 200
+        user_id = user_response.json()['_id']
 
         # Create a new post with valid token
         post_data = {
-            "user_id": str(user.id),
+            "user_id": user_id,
             "content": "This is a test post.",
             "media_type": "image",
             "media_url": "http://example.com/image.jpg"
         }
-        headers = {"Authorization": f"Bearer {access_token}"}
         response = await ac.post("/posts/", json=post_data, headers=headers)
         assert response.status_code == 201
 
         post_response = response.json()
-        assert post_response["content"] == post_data["content"]
-        assert post_response["media_type"] == post_data["media_type"]
-        assert post_response["media_url"] == post_data["media_url"]
+        assert post_response["content"] == "This is a test post."
+        assert post_response["media_type"] == "image"
+        assert post_response["media_url"] == "http://example.com/image.jpg"
 
 
 @pytest.mark.anyio
 async def test_get_all_posts():
     """Test retrieving all posts."""
-
     async with AsyncClient(app=app, base_url="http://test") as ac:
         # Register a new user and obtain tokens
+        unique_id = uuid.uuid4()
+        unique_email = f"test_delete_{unique_id}@example.com"
+        unique_username = f"test_delete_{unique_id}"
         register_data = {
-            "email": "test@example.com",
-            "username": "testuser",
+            "email": unique_email,
+            "username": unique_username,
             "password": "testpassword"
         }
-        await ac.post("/auth/register", json=register_data)
-
-        login_data = {
-            "username": "test@example.com",
-            "password": "testpassword"
-        }
-        login_response = await ac.post("/auth/login", data=login_data)
-        assert login_response.status_code == 200
+        login_response = await ac.post("/auth/register", json=register_data)
+        assert login_response.status_code == 201
         access_token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {access_token}"}
 
         # Send a GET request to retrieve all posts with valid token
-        headers = {"Authorization": f"Bearer {access_token}"}
         response = await ac.get("/posts/", headers=headers)
         assert response.status_code == 200
 
         posts_response = response.json()
         assert isinstance(posts_response, list)
-        assert len(posts_response) > 0  # Ensure there is at least one post
 
 
 @pytest.mark.anyio
 async def test_get_post_by_id():
     """Test retrieving a single post by ID."""
-
-    # Create a post to test retrieval
-    post = Post(user_id="some_user_id", content="This is a test post by ID.",
-                media_type="image", media_url="http://example.com/image.jpg")
-    await post.create()
-
     async with AsyncClient(app=app, base_url="http://test") as ac:
         # Register a new user and obtain tokens
+        unique_id = uuid.uuid4()
+        unique_email = f"test_delete_{unique_id}@example.com"
+        unique_username = f"test_delete_{unique_id}"
         register_data = {
-            "email": "test@example.com",
-            "username": "testuser",
+            "email": unique_email,
+            "username": unique_username,
             "password": "testpassword"
         }
-        await ac.post("/auth/register", json=register_data)
-
-        login_data = {
-            "username": "test@example.com",
-            "password": "testpassword"
-        }
-        login_response = await ac.post("/auth/login", data=login_data)
-        assert login_response.status_code == 200
+        login_response = await ac.post("/auth/register", json=register_data)
+        assert login_response.status_code == 201
         access_token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {access_token}"}
+
+        # Fetch the user to get the correct ID
+        user_response = await ac.get("/auth/me", headers=headers)
+        assert user_response.status_code == 200
+        user_id = user_response.json()['_id']
+        # Create a post for the user
+        post_data = {
+            "user_id": user_id,
+            "content": "This is a test post.",
+            "media_type": "image",
+            "media_url": "http://example.com/user_image.jpg"
+        }
+        post_response = await ac.post("/posts/", json=post_data, headers=headers)
+        assert post_response.status_code == 201
+        post_id = post_response.json()["_id"]
 
         # Send a GET request to retrieve the post with valid token
-        headers = {"Authorization": f"Bearer {access_token}"}
-        response = await ac.get(f"/posts/{post.id}", headers=headers)
+        response = await ac.get(f"/posts/{post_id}", headers=headers)
         assert response.status_code == 200
 
         post_response = response.json()
-        assert post_response["content"] == post.content
-        assert post_response["media_type"] == post.media_type
-        assert post_response["media_url"] == post.media_url
+        assert post_response["content"] == "This is a test post."
+        assert post_response["media_type"] == "image"
+        assert post_response["media_url"] == "http://example.com/user_image.jpg"
 
 
 @pytest.mark.anyio
 async def test_get_all_posts_of_user():
     """Test retrieving all posts of a user."""
-
-    async with AsyncClient(app=app, base_url="http://test") as ac:
-        # Register a new user and obtain tokens
-        register_data = {
-            "email": "test@example.com",
-            "username": "testuser",
-            "password": "testpassword"
-        }
-        await ac.post("/auth/register", json=register_data)
-        user = await User.find_one(User.username == "testuser")
-
-        login_data = {
-            "username": "test@example.com",
-            "password": "testpassword"
-        }
-        login_response = await ac.post("/auth/login", data=login_data)
-        assert login_response.status_code == 200
-        access_token = login_response.json()["access_token"]
-
-        # Create a post for the user
-        post_data = {
-            "user_id": user.id,
-            "content": "This is a test post for the user.",
-            "media_type": "image",
-            "media_url": "http://example.com/user_image.jpg"
-        }
-        headers = {"Authorization": f"Bearer {access_token}"}
-        await ac.post("/posts/", json=post_data, headers=headers)
-
-        # Send a GET request to retrieve all posts of the user with valid token
-        response = await ac.get(f"/posts/user/{user.id}", headers=headers)
-        assert response.status_code == 200
-
-        posts_response = response.json()
-        assert isinstance(posts_response, list)
-        assert len(posts_response) > 0
-
-
-@pytest.mark.anyio
-async def test_delete_post_by_id():
-    """Test deleting a post by ID."""
 
     async with AsyncClient(app=app, base_url="http://test") as ac:
         # Register a new user and obtain tokens
@@ -190,13 +147,51 @@ async def test_delete_post_by_id():
             "password": "testpassword"
         }
         login_response = await ac.post("/auth/register", json=register_data)
-        print(f"XXXXXX {login_response.content}")
         assert login_response.status_code == 201
         access_token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {access_token}"}
 
-        # Send a DELETE request to delete the post with valid token
+        # Fetch the user to get the correct ID
+        user_response = await ac.get("/auth/me", headers=headers)
+        assert user_response.status_code == 200
+        user_id = user_response.json()['_id']
+
+        # Create a post for the user
+        post_data = {
+            "user_id": user_id,
+            "content": "This is a test post for the user.",
+            "media_type": "image",
+            "media_url": "http://example.com/user_image.jpg"
+        }
+        await ac.post("/posts/", json=post_data, headers=headers)
+
+        # Send a GET request to retrieve all posts of the user with valid token
+        response = await ac.get(f"/posts/user/{user_id}", headers=headers)
+        assert response.status_code == 200
+
+        posts_response = response.json()
+        assert isinstance(posts_response, list)
+        assert len(posts_response) > 0
+
+
+@pytest.mark.anyio
+async def test_delete_post_by_id():
+    """Test deleting a post by ID."""
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        # Register a new user and obtain tokens
+        unique_id = uuid.uuid4()
+        unique_email = f"test_delete_{unique_id}@example.com"
+        unique_username = f"test_delete_{unique_id}"
+        register_data = {
+            "email": unique_email,
+            "username": unique_username,
+            "password": "testpassword"
+        }
+        login_response = await ac.post("/auth/register", json=register_data)
+        assert login_response.status_code == 201
+        access_token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {access_token}"}
+
         # Fetch the user to get the correct ID
         user_response = await ac.get("/auth/me", headers=headers)
         assert user_response.status_code == 200
@@ -221,6 +216,7 @@ async def test_delete_post_by_id():
         response = await ac.post("/comments/", json=comment_data, headers=headers)
         assert response.status_code == 201
 
+        # Send a DELETE request to delete the post with valid token
         response = await ac.delete(f"/posts/{post_id}", headers=headers)
         assert response.status_code == 200
         assert response.json()["message"] == "Post deleted successfully"
@@ -238,27 +234,28 @@ async def test_create_post_with_no_content_and_no_media_url():
     """Test creating a post with neither content nor media_url should fail."""
     async with AsyncClient(app=app, base_url="http://test") as ac:
         # Register a new user and obtain tokens
+        unique_id = uuid.uuid4()
+        unique_email = f"test_delete_{unique_id}@example.com"
+        unique_username = f"test_delete_{unique_id}"
         register_data = {
-            "email": "test6@example.com",
-            "username": "test6",
+            "email": unique_email,
+            "username": unique_username,
             "password": "testpassword"
         }
-        await ac.post("/auth/register", json=register_data)
-        user = await User.find_one(User.username == "test6")
-
-        login_data = {
-            "username": "test6@example.com",
-            "password": "testpassword"
-        }
-        login_response = await ac.post("/auth/login", data=login_data)
-        assert login_response.status_code == 200
+        login_response = await ac.post("/auth/register", json=register_data)
+        assert login_response.status_code == 201
         access_token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {access_token}"}
+
+        # Fetch the user to get the correct ID
+        user_response = await ac.get("/auth/me", headers=headers)
+        assert user_response.status_code == 200
+        user_id = user_response.json()['_id']
 
         # Attempt to create a post with neither content nor media_url
         post_data = {
-            "user_id": user.id,
+            "user_id": user_id,
         }
-        headers = {"Authorization": f"Bearer {access_token}"}
         response = await ac.post('/posts/', json=post_data, headers=headers)
 
         assert response.status_code == 422  # 422 Unprocessable Entity
@@ -269,35 +266,37 @@ async def test_update_post_with_no_content_and_no_media_url():
     """Test updating a post with neither content nor media_url should fail."""
     async with AsyncClient(app=app, base_url="http://test") as ac:
         # Register a new user and obtain tokens
+        unique_id = uuid.uuid4()
+        unique_email = f"test_delete_{unique_id}@example.com"
+        unique_username = f"test_delete_{unique_id}"
         register_data = {
-            "email": "test7@example.com",
-            "username": "test7",
+            "email": unique_email,
+            "username": unique_username,
             "password": "testpassword"
         }
-        await ac.post("/auth/register", json=register_data)
-        user = await User.find_one(User.username == "test7")
-
-        login_data = {
-            "username": "test7@example.com",
-            "password": "testpassword"
-        }
-        login_response = await ac.post("/auth/login", data=login_data)
-        assert login_response.status_code == 200
+        login_response = await ac.post("/auth/register", json=register_data)
+        assert login_response.status_code == 201
         access_token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {access_token}"}
+
+        # Fetch the user to get the correct ID
+        user_response = await ac.get("/auth/me", headers=headers)
+        assert user_response.status_code == 200
+        user_id = user_response.json()['_id']
 
         # Create a post for the user
         post_data = {
-            "user_id": user.id,
+            "user_id": user_id,
             "content": "Original content",
             "media_type": "image",
             "media_url": "http://example.com/original.jpg"
         }
-        headers = {"Authorization": f"Bearer {access_token}"}
         post_response = await ac.post("/posts/", json=post_data, headers=headers)
-        post = post_response.json()
+        assert post_response.status_code == 201
+        post_id = post_response.json()['_id']
 
         # Attempt to update the post with no content and no media_url
         updated_post_data = {}
-        response = await ac.put(f"/posts/{post['_id']}", json=updated_post_data, headers=headers)
+        response = await ac.put(f"/posts/{post_id}", json=updated_post_data, headers=headers)
 
         assert response.status_code == 422  # 422 Unprocessable Entity

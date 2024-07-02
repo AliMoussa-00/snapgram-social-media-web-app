@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """ testing the posts endpoints """
 
+import uuid
 import pytest
 from httpx import AsyncClient
 from beanie import init_beanie
@@ -26,30 +27,29 @@ async def initialize_db():
 @pytest.mark.anyio
 async def test_like_post_success():
     """Test liking a post successfully."""
-
     async with AsyncClient(app=app, base_url="http://test") as ac:
         # Register a new user and obtain tokens
+        unique_id = uuid.uuid4()
+        unique_email = f"test_delete_{unique_id}@example.com"
+        unique_username = f"test_delete_{unique_id}"
         register_data = {
-            "email": "test@example.com",
-            "username": "testuser",
+            "email": unique_email,
+            "username": unique_username,
             "password": "testpassword"
         }
-        await ac.post("/auth/register", json=register_data)
-
-        login_data = {
-            "username": "test@example.com",
-            "password": "testpassword"
-        }
-        login_response = await ac.post("/auth/login", data=login_data)
-        assert login_response.status_code == 200
+        login_response = await ac.post("/auth/register", json=register_data)
+        assert login_response.status_code == 201
         access_token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {access_token}"}
 
-        # Fetch the user from the database to get the actual user ID
-        user = await User.find_one(User.username == "testuser")
+        # Fetch the user to get the correct ID
+        user_response = await ac.get("/auth/me", headers=headers)
+        assert user_response.status_code == 200
+        user_id = user_response.json()['_id']
 
         # Create a post for the user
         post_data = {
-            "user_id": str(user.id),
+            "user_id": user_id,
             "content": "This is a test post.",
             "media_type": "image",
             "media_url": "http://example.com/image.jpg"
@@ -61,7 +61,7 @@ async def test_like_post_success():
 
         # Like the post
         like_data = {
-            "user_id": str(user.id),
+            "user_id": user_id,
             "post_id": post_id
         }
         response = await ac.post("/likes/", json=like_data, headers=headers)
@@ -74,42 +74,40 @@ async def test_like_post_success():
 @pytest.mark.anyio
 async def test_get_all_likes_of_post():
     """Test the retrieval of all likes of a post."""
-
     async with AsyncClient(app=app, base_url="http://test") as ac:
         # Register a new user and obtain tokens
+        unique_id = uuid.uuid4()
+        unique_email = f"test_delete_{unique_id}@example.com"
+        unique_username = f"test_delete_{unique_id}"
         register_data = {
-            "email": "test@example.com",
-            "username": "testuser",
+            "email": unique_email,
+            "username": unique_username,
             "password": "testpassword"
         }
-        await ac.post("/auth/register", json=register_data)
-
-        login_data = {
-            "username": "test@example.com",
-            "password": "testpassword"
-        }
-        login_response = await ac.post("/auth/login", data=login_data)
-        assert login_response.status_code == 200
+        login_response = await ac.post("/auth/register", json=register_data)
+        assert login_response.status_code == 201
         access_token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {access_token}"}
 
-        # Fetch the user from the database to get the actual user ID
-        user = await User.find_one(User.username == "testuser")
+        # Fetch the user to get the correct ID
+        user_response = await ac.get("/auth/me", headers=headers)
+        assert user_response.status_code == 200
+        user_id = user_response.json()['_id']
 
         # Create a post for the user
         post_data = {
-            "user_id": str(user.id),
+            "user_id": user_id,
             "content": "This is a test post.",
             "media_type": "image",
             "media_url": "http://example.com/image.jpg"
         }
-        headers = {"Authorization": f"Bearer {access_token}"}
         post_response = await ac.post("/posts/", json=post_data, headers=headers)
         assert post_response.status_code == 201
         post_id = post_response.json()["_id"]
 
         # Like the post
         like_data = {
-            "user_id": str(user.id),
+            "user_id": user_id,
             "post_id": post_id
         }
         await ac.post("/likes/", json=like_data, headers=headers)
@@ -133,39 +131,38 @@ async def test_unlike_post():
 
     async with AsyncClient(app=app, base_url="http://test") as ac:
         # Register a new user and obtain tokens
+        unique_id = uuid.uuid4()
+        unique_email = f"test_delete_{unique_id}@example.com"
+        unique_username = f"test_delete_{unique_id}"
         register_data = {
-            "email": "test@example.com",
-            "username": "testuser",
+            "email": unique_email,
+            "username": unique_username,
             "password": "testpassword"
         }
-        await ac.post("/auth/register", json=register_data)
-
-        login_data = {
-            "username": "test@example.com",
-            "password": "testpassword"
-        }
-        login_response = await ac.post("/auth/login", data=login_data)
-        assert login_response.status_code == 200
+        login_response = await ac.post("/auth/register", json=register_data)
+        assert login_response.status_code == 201
         access_token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {access_token}"}
 
-        # Fetch the user from the database to get the actual user ID
-        user = await User.find_one(User.username == "testuser")
+        # Fetch the user to get the correct ID
+        user_response = await ac.get("/auth/me", headers=headers)
+        assert user_response.status_code == 200
+        user_id = user_response.json()['_id']
 
         # Create a post for the user
         post_data = {
-            "user_id": str(user.id),
+            "user_id": user_id,
             "content": "This is a test post.",
             "media_type": "image",
             "media_url": "http://example.com/image.jpg"
         }
-        headers = {"Authorization": f"Bearer {access_token}"}
         post_response = await ac.post("/posts/", json=post_data, headers=headers)
         assert post_response.status_code == 201
         post_id = post_response.json()["_id"]
 
         # Like the post
         like_data = {
-            "user_id": str(user.id),
+            "user_id": user_id,
             "post_id": post_id
         }
         like_response = await ac.post("/likes/", json=like_data, headers=headers)

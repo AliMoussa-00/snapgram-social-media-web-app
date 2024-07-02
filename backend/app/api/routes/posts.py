@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """ Defining Routes for the post class """
 
-from beanie import DeleteRules
 from fastapi import APIRouter, HTTPException, status, Depends
 from app.api.dependencies import get_current_user
 from app.models.comment import Comment
@@ -61,7 +60,6 @@ async def get_all_posts_of_user(
             detail='User not found'
         )
     posts = user.posts
-    # posts = await Post.find(Post.user_id == user_id).to_list()
     return [PostResponse(**post.model_dump(by_alias=True)) for post in posts]
 
 
@@ -120,7 +118,6 @@ async def delete_post_by_id(
     await Comment.find(Comment.post_id == post.id).delete()
     await post.delete()
     await current_user.remove_post(post)
-    # await post.delete(link_rule=DeleteRules.DELETE_LINKS)
     return {"message": "Post deleted successfully"}
 
 

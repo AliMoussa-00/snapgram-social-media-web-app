@@ -5,7 +5,6 @@ import uuid
 from app.models.comment import Comment
 from app.models.like import Like
 from app.models.post import Post
-from app.utils.auth import create_access_token
 import pytest
 from httpx import AsyncClient
 from app.api.app import app
@@ -13,7 +12,6 @@ from app.models.user import User
 from app.models.token import BlackListedTokens
 from beanie import init_beanie
 from motor.motor_asyncio import AsyncIOMotorClient
-from asgi_lifespan import LifespanManager
 
 
 # 'fixture': This decorator is used to create a fixture in pytest.
@@ -39,22 +37,18 @@ async def initialize_db():
 @pytest.mark.anyio
 async def test_get_all_users():
     """Test retrieving all users."""
-
     async with AsyncClient(app=app, base_url="http://test") as ac:
         # Register a new user and obtain tokens
+        unique_id = uuid.uuid4()
+        unique_email = f"test_delete_{unique_id}@example.com"
+        unique_username = f"test_delete_{unique_id}"
         register_data = {
-            "email": "test@example.com",
-            "username": "testuser",
+            "email": unique_email,
+            "username": unique_username,
             "password": "testpassword"
         }
-        await ac.post("/auth/register", json=register_data)
-
-        login_data = {
-            "username": "test@example.com",
-            "password": "testpassword"
-        }
-        login_response = await ac.post("/auth/login", data=login_data)
-        assert login_response.status_code == 200
+        login_response = await ac.post("/auth/register", json=register_data)
+        assert login_response.status_code == 201
         access_token = login_response.json()["access_token"]
 
         # Send a GET request to retrieve all users with valid token
@@ -71,74 +65,63 @@ async def test_get_all_users():
 @pytest.mark.anyio
 async def test_get_user():
     """Test retrieving a single user by ID."""
-
-    # Create a user to test retrieval
-    user = User(email="test2@example.com",
-                hashed_password="hashedpassword", username="testuser2")
-    await user.create()
-
     async with AsyncClient(app=app, base_url="http://test") as ac:
         # Register a new user and obtain tokens
+        unique_id = uuid.uuid4()
+        unique_email = f"test_delete_{unique_id}@example.com"
+        unique_username = f"test_delete_{unique_id}"
         register_data = {
-            "email": "test@example.com",
-            "username": "testuser",
+            "email": unique_email,
+            "username": unique_username,
             "password": "testpassword"
         }
-        await ac.post("/auth/register", json=register_data)
-
-        login_data = {
-            "username": "test@example.com",
-            "password": "testpassword"
-        }
-        login_response = await ac.post("/auth/login", data=login_data)
-        assert login_response.status_code == 200
+        login_response = await ac.post("/auth/register", json=register_data)
+        assert login_response.status_code == 201
         access_token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {access_token}"}
+        # Fetch the user to get the correct ID
+        user_response = await ac.get("/auth/me", headers=headers)
+        assert user_response.status_code == 200
+        user_id = user_response.json()['_id']
 
         # Send a GET request to retrieve the user with valid token
-        headers = {"Authorization": f"Bearer {access_token}"}
-        response = await ac.get(f"/users/{user.id}", headers=headers)
+        response = await ac.get(f"/users/{user_id}", headers=headers)
 
         assert response.status_code == 200
 
         user_response = response.json()
-        assert user_response["username"] == "testuser2"
-        assert user_response["email"] == "test2@example.com"
+        assert user_response["username"] == unique_username
+        assert user_response["email"] == unique_email
 
 
 @pytest.mark.anyio
 async def test_update_user():
     """Test updating a user."""
-
-    # Create a user to test update
-    user = User(email="test3@example.com",
-                hashed_password="hashedpassword", username="testuser3")
-    await user.create()
-
     updated_user_data = {
         "username": "updateduser",
         "email": "updated@example.com"
     }
-
     async with AsyncClient(app=app, base_url="http://test") as ac:
         # Register a new user and obtain tokens
+        unique_id = uuid.uuid4()
+        unique_email = f"test_delete_{unique_id}@example.com"
+        unique_username = f"test_delete_{unique_id}"
         register_data = {
-            "email": "test@example.com",
-            "username": "testuser",
+            "email": unique_email,
+            "username": unique_username,
             "password": "testpassword"
         }
-        await ac.post("/auth/register", json=register_data)
-
-        login_data = {
-            "username": "test@example.com",
-            "password": "testpassword"
-        }
-        login_response = await ac.post("/auth/login", data=login_data)
-        assert login_response.status_code == 200
+        login_response = await ac.post("/auth/register", json=register_data)
+        assert login_response.status_code == 201
         access_token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {access_token}"}
+        # Fetch the user to get the correct ID
+        user_response = await ac.get("/auth/me", headers=headers)
+        assert user_response.status_code == 200
+        user_id = user_response.json()['_id']
 
         # Send a PUT request to update the user with valid token
-        headers = {"Authorization": f"Bearer {access_token}"}
-        response = await ac.put(f"/users/{user.id}", json=updated_user_data, headers=headers)
+        response = await ac.put(f"/users/{user_id}", json=updated_user_data, headers=headers)
 
         assert response.status_code == 200
 
@@ -150,8 +133,6 @@ async def test_update_user():
 @pytest.mark.anyio
 async def test_delete_user():
     """Test deleting a user."""
-
-    # async with LifespanManager(app):
     async with AsyncClient(app=app, base_url="http://test") as ac:
         # Register a new user and obtain tokens
         unique_id = uuid.uuid4()
@@ -210,37 +191,28 @@ async def test_delete_user():
 @pytest.mark.anyio
 async def test_follow_user():
     """Test following a user."""
-    # Create a user to follow
-    user = User(email="test5@example.com",
-                hashed_password="hashedpassword", username="testuser5")
-    await user.create()
     async with AsyncClient(app=app, base_url="http://test") as ac:
-        # Register two new users
-        register_data_user1 = {
-            "email": "user1@example.com",
-            "username": "user1",
+        # Register a new user and obtain tokens
+        unique_id = uuid.uuid4()
+        unique_email = f"test_delete_{unique_id}@example.com"
+        unique_username = f"test_delete_{unique_id}"
+        register_data = {
+            "email": unique_email,
+            "username": unique_username,
             "password": "testpassword"
         }
-        register_data_user2 = {
-            "email": "user2@example.com",
-            "username": "user2",
-            "password": "testpassword"
-        }
-        await ac.post("/auth/register", json=register_data_user1)
-        await ac.post("/auth/register", json=register_data_user2)
+        login_response = await ac.post("/auth/register", json=register_data)
+        assert login_response.status_code == 201
+        access_token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {access_token}"}
 
-        # Login user1 to get access token
-        login_data_user1 = {
-            "username": "user1@example.com",
-            "password": "testpassword"
-        }
-        login_response_user1 = await ac.post("/auth/login", data=login_data_user1)
-        assert login_response_user1.status_code == 200
-        access_token_user1 = login_response_user1.json()["access_token"]
-        headers = {"Authorization": f"Bearer {access_token_user1}"}
+        # Fetch the user to get the correct ID
+        user_response = await ac.get("/auth/me", headers=headers)
+        assert user_response.status_code == 200
+        user_id = user_response.json()['_id']
 
         # Follow user2 using user1's access token
-        follow_response = await ac.post(f"/users/follow/{user.id}", headers=headers)
+        follow_response = await ac.post(f"/users/follow/{user_id}", headers=headers)
         assert follow_response.status_code == 200
         assert follow_response.json() == {"message": "follow successfully"}
 
@@ -248,48 +220,32 @@ async def test_follow_user():
 @pytest.mark.anyio
 async def test_unfollow_user():
     """Test unfollowing a user."""
-    # Create a user to follow
-    user = User(email="test6@example.com",
-                hashed_password="hashedpassword", username="testuser6")
-    await user.create()
     async with AsyncClient(app=app, base_url="http://test") as ac:
-        # Register two new users
-        register_data_user1 = {
-            "email": "user1@example.com",
-            "username": "user1",
+        # Register a new user and obtain tokens
+        unique_id = uuid.uuid4()
+        unique_email = f"test_delete_{unique_id}@example.com"
+        unique_username = f"test_delete_{unique_id}"
+        register_data = {
+            "email": unique_email,
+            "username": unique_username,
             "password": "testpassword"
         }
-        register_data_user2 = {
-            "email": "user2@example.com",
-            "username": "user2",
-            "password": "testpassword"
-        }
-        await ac.post("/auth/register", json=register_data_user1)
-        await ac.post("/auth/register", json=register_data_user2)
+        login_response = await ac.post("/auth/register", json=register_data)
+        assert login_response.status_code == 201
+        access_token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {access_token}"}
 
-        # Login user1 to get access token
-        login_data_user1 = {
-            "username": "user1@example.com",
-            "password": "testpassword"
-        }
-        login_response_user1 = await ac.post("/auth/login", data=login_data_user1)
-        assert login_response_user1.status_code == 200
-        access_token_user1 = login_response_user1.json()["access_token"]
-        headers = {"Authorization": f"Bearer {access_token_user1}"}
+        # Fetch the user to get the correct ID
+        user_response = await ac.get("/auth/me", headers=headers)
+        assert user_response.status_code == 200
+        user_id = user_response.json()['_id']
 
         # Follow user using user1's access token
-        follow_response = await ac.post(f"/users/follow/{user.id}", headers=headers)
+        follow_response = await ac.post(f"/users/follow/{user_id}", headers=headers)
         assert follow_response.status_code == 200
 
-        # Print the user ID and URL being requested
-        print(f"User ID to unfollow: {user.id}")
-        print(f"DELETE URL: /users/unfollow/{user.id}")
-
         # Unfollow user using user1's access token
-        unfollow_response = await ac.delete(f"/users/unfollow/{user.id}", headers=headers)
-        print(
-            f"Unfollow Response Status Code: {unfollow_response.status_code}")
-        print(f"Unfollow Response JSON: {unfollow_response.json()}")
+        unfollow_response = await ac.delete(f"/users/unfollow/{user_id}", headers=headers)
         assert unfollow_response.status_code == 200
         assert unfollow_response.json()["message"] == "Unfollowed successfully"
 
@@ -297,31 +253,28 @@ async def test_unfollow_user():
 @pytest.mark.anyio
 async def test_get_followers():
     """Test retrieving followers of a user."""
-    # Create a user
-    user = User(email="test6@example.com",
-                hashed_password="hashedpassword", username="testuser6")
-    await user.create()
-
     async with AsyncClient(app=app, base_url="http://test") as ac:
         # Register a new user and obtain tokens
+        unique_id = uuid.uuid4()
+        unique_email = f"test_delete_{unique_id}@example.com"
+        unique_username = f"test_delete_{unique_id}"
         register_data = {
-            "email": "test@example.com",
-            "username": "testuser",
+            "email": unique_email,
+            "username": unique_username,
             "password": "testpassword"
         }
-        await ac.post("/auth/register", json=register_data)
-
-        login_data = {
-            "username": "test@example.com",
-            "password": "testpassword"
-        }
-        login_response = await ac.post("/auth/login", data=login_data)
-        assert login_response.status_code == 200
+        login_response = await ac.post("/auth/register", json=register_data)
+        assert login_response.status_code == 201
         access_token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {access_token}"}
+
+        # Fetch the user to get the correct ID
+        user_response = await ac.get("/auth/me", headers=headers)
+        assert user_response.status_code == 200
+        user_id = user_response.json()['_id']
 
         # Send a GET request to retrieve followers
-        headers = {"Authorization": f"Bearer {access_token}"}
-        response = await ac.get(f"/users/{user.id}/followers", headers=headers)
+        response = await ac.get(f"/users/{user_id}/followers", headers=headers)
 
         assert response.status_code == 200
         followers_response = response.json()
@@ -331,31 +284,28 @@ async def test_get_followers():
 @pytest.mark.anyio
 async def test_get_following():
     """Test retrieving users a user is following."""
-    # Create a user
-    user = User(email="test6@example.com",
-                hashed_password="hashedpassword", username="testuser6")
-    await user.create()
-
     async with AsyncClient(app=app, base_url="http://test") as ac:
         # Register a new user and obtain tokens
+        unique_id = uuid.uuid4()
+        unique_email = f"test_delete_{unique_id}@example.com"
+        unique_username = f"test_delete_{unique_id}"
         register_data = {
-            "email": "test@example.com",
-            "username": "testuser",
+            "email": unique_email,
+            "username": unique_username,
             "password": "testpassword"
         }
-        await ac.post("/auth/register", json=register_data)
-
-        login_data = {
-            "username": "test@example.com",
-            "password": "testpassword"
-        }
-        login_response = await ac.post("/auth/login", data=login_data)
-        assert login_response.status_code == 200
+        login_response = await ac.post("/auth/register", json=register_data)
+        assert login_response.status_code == 201
         access_token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {access_token}"}
+
+        # Fetch the user to get the correct ID
+        user_response = await ac.get("/auth/me", headers=headers)
+        assert user_response.status_code == 200
+        user_id = user_response.json()['_id']
 
         # Send a GET request to retrieve following users
-        headers = {"Authorization": f"Bearer {access_token}"}
-        response = await ac.get(f"/users/{user.id}/following", headers=headers)
+        response = await ac.get(f"/users/{user_id}/following", headers=headers)
 
         assert response.status_code == 200
         following_response = response.json()
