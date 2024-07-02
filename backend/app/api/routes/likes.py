@@ -14,7 +14,13 @@ like_router = APIRouter()
 @like_router.post('/',
                   status_code=status.HTTP_201_CREATED,
                   response_description='Like  Post')
-async def like_post(like_create: LikeCreateRequest, current_user: User = Depends(get_current_user)) -> LikeResponse:
+async def like_post(
+        like_create: LikeCreateRequest,
+        current_user: User = Depends(get_current_user)) -> LikeResponse:
+    """
+    Like a post, a user can like posts
+    """
+
     post = await Post.get(like_create.post_id)
     if not post:
         raise HTTPException(
@@ -48,7 +54,13 @@ async def like_post(like_create: LikeCreateRequest, current_user: User = Depends
 @like_router.delete('/{like_id}',
                     status_code=status.HTTP_200_OK,
                     response_description='Unlike Post')
-async def unlike_post(like_id: str, current_user: User = Depends(get_current_user)) -> dict:
+async def unlike_post(
+        like_id: str,
+        current_user: User = Depends(get_current_user)) -> dict:
+    """
+    Unlike a post, Remove a like from a post
+    """
+
     like = await Like.get(like_id)
     if not like:
         raise HTTPException(
@@ -72,7 +84,13 @@ async def unlike_post(like_id: str, current_user: User = Depends(get_current_use
 @like_router.get('/post/{post_id}',
                  status_code=status.HTTP_200_OK,
                  response_description='Get all likes of a post')
-async def get_all_likes_of_post(post_id: str, current_user: User = Depends(get_current_user)) -> List[LikeResponse]:
+async def get_all_likes_of_post(
+        post_id: str,
+        current_user: User = Depends(get_current_user)) -> List[LikeResponse]:
+    """
+    Get a list of like objects of a post
+    """
+
     post = await Post.get(post_id, fetch_links=True)
     if not post:
         raise HTTPException(

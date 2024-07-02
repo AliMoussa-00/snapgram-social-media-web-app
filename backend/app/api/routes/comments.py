@@ -15,7 +15,14 @@ comment_router = APIRouter()
 @comment_router.post('/',
                      status_code=status.HTTP_201_CREATED,
                      response_description='Create Comment')
-async def create_comment(comment_create: CommentCreateRequest, current_user: User = Depends(get_current_user)) -> CommentResponse:
+async def create_comment(
+        comment_create: CommentCreateRequest,
+        current_user: User = Depends(get_current_user)) -> CommentResponse:
+    """
+    Create a new comment
+    a user will add a comment to a post
+    """
+
     post = await Post.get(comment_create.post_id)
     if not post:
         raise HTTPException(
@@ -41,7 +48,13 @@ async def create_comment(comment_create: CommentCreateRequest, current_user: Use
 @comment_router.get('/post/{post_id}',
                     status_code=status.HTTP_200_OK,
                     response_description='Get all comments of a post')
-async def get_all_comments_of_post(post_id: str, current_user: User = Depends(get_current_user)) -> List[CommentResponse]:
+async def get_all_comments_of_post(
+        post_id: str,
+        current_user: User = Depends(get_current_user)) -> List[CommentResponse]:
+    """
+    Get all comment of a certain post
+    """
+
     post = await Post.get(post_id, fetch_links=True)
     if not post:
         raise HTTPException(
@@ -57,7 +70,14 @@ async def get_all_comments_of_post(post_id: str, current_user: User = Depends(ge
 @comment_router.put('/{comment_id}',
                     status_code=status.HTTP_200_OK,
                     response_description='Update a comment by ID')
-async def update_comment(comment_id: str, update_comment: UpdateCommentRequest, current_user: User = Depends(get_current_user)) -> CommentResponse:
+async def update_comment(
+        comment_id: str,
+        update_comment: UpdateCommentRequest,
+        current_user: User = Depends(get_current_user)) -> CommentResponse:
+    """
+    Update a comment
+    """
+
     comment = await Comment.get(comment_id)
     if not comment:
         raise HTTPException(
@@ -73,7 +93,13 @@ async def update_comment(comment_id: str, update_comment: UpdateCommentRequest, 
 @comment_router.delete('/{comment_id}',
                        status_code=status.HTTP_200_OK,
                        response_description='Delete a comment by ID')
-async def delete_comment(comment_id: str, current_user: User = Depends(get_current_user)) -> dict:
+async def delete_comment(
+        comment_id: str,
+        current_user: User = Depends(get_current_user)) -> dict:
+    """
+    Delete a comment
+    """
+
     comment = await Comment.get(comment_id)
     if not comment:
         raise HTTPException(
@@ -96,6 +122,10 @@ async def delete_comment(comment_id: str, current_user: User = Depends(get_curre
                        status_code=status.HTTP_200_OK,
                        response_description='Delete all comment')
 async def delete_all_comments():
+    """
+    Delete all comment; will be removed!
+    """
+
     try:
         # Fetch all comments
         comments = await Comment.find().to_list()

@@ -1,6 +1,7 @@
 # test_authentication.py
 
 from datetime import datetime, timedelta, timezone
+import uuid
 import jwt
 import pytest
 from httpx import AsyncClient
@@ -25,16 +26,19 @@ async def initialize_db():
 @pytest.mark.anyio
 async def test_register_and_login():
     # Check if user already exists with the same email or username
-    existing_user = await User.find_one({"$or": [{"email": "test@example.com"}, {"username": "testuser"}]})
-    if existing_user:
-        # Clean up or skip the test if user already exists
-        await existing_user.delete()
+    # existing_user = await User.find_one({"$or": [{"email": "test@example.com"}, {"username": "testuser"}]})
+    # if existing_user:
+    #     # Clean up or skip the test if user already exists
+    #     await existing_user.delete()
 
     async with AsyncClient(app=app, base_url="http://test") as ac:
         # Register a new user
+        unique_id = uuid.uuid4()
+        unique_email = f"test_delete_{unique_id}@example.com"
+        unique_username = f"test_delete_{unique_id}"
         register_data = {
-            "email": "test@example.com",
-            "username": "testuser",
+            "email": unique_email,
+            "username": unique_username,
             "password": "testpassword"
         }
         response = await ac.post("/auth/register", json=register_data)
@@ -45,7 +49,7 @@ async def test_register_and_login():
 
         # Login with the registered user
         login_data = {
-            "username": "test@example.com",  # Using email for login
+            "username": unique_email,  # Using email for login
             "password": "testpassword"
         }
         response = await ac.post("/auth/login", data=login_data)
@@ -57,69 +61,51 @@ async def test_register_and_login():
 
 @pytest.mark.anyio
 async def test_get_current_user():
-    # Check if user already exists with the same email or username
-    existing_user = await User.find_one({"$or": [{"email": "test@example.com"}, {"username": "testuser"}]})
-    if existing_user:
-        # Clean up or skip the test if user already exists
-        await existing_user.delete()
-
     async with AsyncClient(app=app, base_url="http://test") as ac:
-        # Register a new user
+        # Register a new user and obtain tokens
+        unique_id = uuid.uuid4()
+        unique_email = f"test_delete_{unique_id}@example.com"
+        unique_username = f"test_delete_{unique_id}"
         register_data = {
-            "email": "test@example.com",
-            "username": "testuser",
+            "email": unique_email,
+            "username": unique_username,
             "password": "testpassword"
         }
-        response = await ac.post("/auth/register", json=register_data)
-        assert response.status_code == 201
-
-        # Login with the registered user
-        login_data = {
-            "username": "test@example.com",  # Using email for login
-            "password": "testpassword"
-        }
-        response = await ac.post("/auth/login", data=login_data)
-        assert response.status_code == 200
-        token_response = response.json()
-        access_token = token_response["access_token"]
-
-        # Retrieve current authenticated user
+        login_response = await ac.post("/auth/register", json=register_data)
+        assert login_response.status_code == 201
+        access_token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {access_token}"}
+
+        # Fetch the user to get the correct ID
         response = await ac.get("/auth/me", headers=headers)
         assert response.status_code == 200
+
+        # Retrieve current authenticated user
         user_response = response.json()
-        assert user_response["email"] == "test@example.com"
-        assert user_response["username"] == "testuser"
+        assert user_response["email"] == unique_email
+        assert user_response["username"] == unique_username
 
 
 @pytest.mark.anyio
 async def test_logout_user():
     """Test logging out a user."""
-    existing_user = await User.find_one({"$or": [{"email": "test@example.com"}, {"username": "testuser"}]})
-    if existing_user:
-        # Clean up or skip the test if user already exists
-        await existing_user.delete()
-
     async with AsyncClient(app=app, base_url="http://test") as ac:
+        # Register a new user and obtain tokens
+        unique_id = uuid.uuid4()
+        unique_email = f"test_delete_{unique_id}@example.com"
+        unique_username = f"test_delete_{unique_id}"
         register_data = {
-            "email": "test@example.com",
-            "username": "testuser",
+            "email": unique_email,
+            "username": unique_username,
             "password": "testpassword"
         }
-        response = await ac.post("/auth/register", json=register_data)
-        assert response.status_code == 201
-
-        login_data = {
-            "username": "test@example.com",  # Using email for login
-            "password": "testpassword"
-        }
-        response = await ac.post("/auth/login", data=login_data)
-        assert response.status_code == 200
-        token_response = response.json()
-        access_token = token_response["access_token"]
+        login_response = await ac.post("/auth/register", json=register_data)
+        assert login_response.status_code == 201
+        access_token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {access_token}"}
 
         # Logout the user
-        response = await ac.post("/auth/logout", headers={"Authorization": f"Bearer {access_token}"})
+        response = await ac.post("/auth/logout", headers=headers)
         assert response.status_code == 200
         assert response.json()["message"] == "Successfully logged out"
 
@@ -128,7 +114,7 @@ async def test_logout_user():
         assert blacklisted_token is not None
 
         # Try to use the blacklisted token to access a protected route
-        response = await ac.get("/users/", headers={"Authorization": f"Bearer {access_token}"})
+        response = await ac.get("/users/", headers=headers)
         assert response.status_code == 401
 
 
