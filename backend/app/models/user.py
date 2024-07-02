@@ -22,6 +22,10 @@ class User(Common):
         bio (Optional[str], optional): Biography or profile description of the user.
         profile_picture_url (Optional[str], optional): URL or path to the user's profile picture.
 
+        posts: a list of posts created by the user, it is linked to the Post class, 
+        followers: a list of users following the current user, it is linked to the User class, 
+        following: a list of users the current user is following, it is linked to the User class, 
+
     Settings:
         name (str): MongoDB collection name for storing User documents.
     """
@@ -46,10 +50,21 @@ class User(Common):
         name = 'users'
 
     async def add_post(self, post: Post):
+        """
+        Add a post to user.posts
+        when a user creates a post, it will be created, stored
+        and appended to the list of posts of the user
+        """
+
         self.posts.append(post)
         await self.save()
 
     async def remove_post(self, post: Post):
+        """
+        Remove a post from the list of user.posts
+        when a post is removed from db it should also be removed from user.posts
+        """
+
         self.posts = [pt for pt in self.posts if pt.id != post.id]
         await self.save()
 

@@ -16,7 +16,13 @@ post_router = APIRouter()
 @post_router.post('/',
                   status_code=status.HTTP_201_CREATED,
                   response_description='Create Post')
-async def create_post(post_create: PostCreateRequest, current_user: User = Depends(get_current_user)) -> PostResponse:
+async def create_post(
+        post_create: PostCreateRequest,
+        current_user: User = Depends(get_current_user)) -> PostResponse:
+    """
+    Create a new post
+    """
+
     user = await User.get(post_create.user_id)
     if not user:
         raise HTTPException(
@@ -35,7 +41,8 @@ async def create_post(post_create: PostCreateRequest, current_user: User = Depen
 @post_router.get('/',
                  status_code=status.HTTP_200_OK,
                  response_description='Get All Post')
-async def get_all_posts(current_user: User = Depends(get_current_user)) -> List[PostResponse]:
+async def get_all_posts() -> List[PostResponse]:
+    """Get all posts; !! will be removed"""
     posts = await Post.find().to_list()
     return [PostResponse(**post.model_dump(by_alias=True)) for post in posts]
 
@@ -43,7 +50,10 @@ async def get_all_posts(current_user: User = Depends(get_current_user)) -> List[
 @post_router.get('/user/{user_id}',
                  status_code=status.HTTP_200_OK,
                  response_description='Get all posts of a user')
-async def get_all_posts_of_user(user_id: str, current_user: User = Depends(get_current_user)) -> List[PostResponse]:
+async def get_all_posts_of_user(
+        user_id: str,
+        current_user: User = Depends(get_current_user)) -> List[PostResponse]:
+    """Get all posts of a user"""
     user = await User.get(user_id, fetch_links=True)
     if not user:
         raise HTTPException(
@@ -58,7 +68,10 @@ async def get_all_posts_of_user(user_id: str, current_user: User = Depends(get_c
 @post_router.get('/{post_id}',
                  status_code=status.HTTP_200_OK,
                  response_description='Get Post By Id')
-async def get_post_by_id(post_id: str, current_user: User = Depends(get_current_user)) -> PostResponse:
+async def get_post_by_id(
+        post_id: str,
+        current_user: User = Depends(get_current_user)) -> PostResponse:
+    """Get a post by id"""
     post = await Post.get(post_id, fetch_links=True)
     if not post:
         raise HTTPException(
@@ -71,7 +84,12 @@ async def get_post_by_id(post_id: str, current_user: User = Depends(get_current_
 @post_router.put('/{post_id}',
                  status_code=status.HTTP_200_OK,
                  response_description='Update a post by ID')
-async def update_post(post_id: str, updated_post: UpdatePostRequest, current_user: User = Depends(get_current_user)) -> PostResponse:
+async def update_post(
+        post_id: str,
+        updated_post: UpdatePostRequest,
+        current_user: User = Depends(get_current_user)) -> PostResponse:
+    """Update a post"""
+
     post = await Post.get(post_id)
     if not post:
         raise HTTPException(
@@ -87,7 +105,11 @@ async def update_post(post_id: str, updated_post: UpdatePostRequest, current_use
 @post_router.delete('/{post_id}',
                     status_code=status.HTTP_200_OK,
                     response_description='Delete Post By Id')
-async def delete_post_by_id(post_id: str, current_user: User = Depends(get_current_user)) -> dict:
+async def delete_post_by_id(
+        post_id: str,
+        current_user: User = Depends(get_current_user)) -> dict:
+    """Delete a post"""
+
     post = await Post.get(post_id)
     if not post:
         raise HTTPException(
@@ -107,6 +129,7 @@ async def delete_post_by_id(post_id: str, current_user: User = Depends(get_curre
                     status_code=status.HTTP_200_OK,
                     response_description='Delete all post')
 async def delete_all_post():
+    """Delete all posts; !! will be removed"""
     try:
         # Fetch all posts
         posts = await Post.find().to_list()

@@ -15,16 +15,21 @@ user_router = APIRouter()
 
 @user_router.get('/',
                  response_model=List[UserResponse])
-async def get_all_users(current_user: User = Depends(get_current_user)) -> List[UserResponse]:
+async def get_all_users(
+        current_user: User = Depends(get_current_user)) -> List[UserResponse]:
     """Get all users"""
+
     users = await User.find().to_list()
     return [UserResponse(**user.model_dump(by_alias=True)) for user in users]
 
 
 @user_router.get('/{user_id}',
                  response_model=UserResponse)
-async def get_user(user_id: str, current_user: User = Depends(get_current_user)) -> UserResponse:
+async def get_user(
+        user_id: str,
+        current_user: User = Depends(get_current_user)) -> UserResponse:
     """Get a user by ID"""
+
     user = await User.get(user_id)
     if not user:
         raise HTTPException(
@@ -34,8 +39,12 @@ async def get_user(user_id: str, current_user: User = Depends(get_current_user))
 
 @user_router.put('/{user_id}',
                  response_model=UserResponse)
-async def update_user(user_id: str, updated_user: UpdateUserRequest, current_user: User = Depends(get_current_user)) -> UserResponse:
+async def update_user(
+        user_id: str,
+        updated_user: UpdateUserRequest,
+        current_user: User = Depends(get_current_user)) -> UserResponse:
     """Update a user by ID"""
+
     user = await User.get(user_id)
     if not user:
         raise HTTPException(
@@ -55,6 +64,8 @@ async def update_user(user_id: str, updated_user: UpdateUserRequest, current_use
                   status_code=status.HTTP_200_OK,
                   response_description='follow user')
 async def follow_user(friend_id: str, current_user: User = Depends(get_current_user)) -> dict:
+    """Follow a friend"""
+
     friend = await User.get(friend_id, fetch_links=True)
     if not friend:
         raise HTTPException(
@@ -72,7 +83,13 @@ async def follow_user(friend_id: str, current_user: User = Depends(get_current_u
 @user_router.get('/{user_id}/followers',
                  status_code=status.HTTP_200_OK,
                  response_description='List followers')
-async def get_followers(user_id: str, current_user: User = Depends(get_current_user)) -> List[UserResponse]:
+async def get_followers(
+        user_id: str,
+        current_user: User = Depends(get_current_user)) -> List[UserResponse]:
+    """
+    Return a list of users following the current user
+    """
+
     user = await User.get(user_id, fetch_links=True)
     if not user:
         raise HTTPException(
@@ -83,7 +100,13 @@ async def get_followers(user_id: str, current_user: User = Depends(get_current_u
 @user_router.get('/{user_id}/following',
                  status_code=status.HTTP_200_OK,
                  response_description='List following')
-async def get_following(user_id: str, current_user: User = Depends(get_current_user)) -> List[UserResponse]:
+async def get_following(
+        user_id: str,
+        current_user: User = Depends(get_current_user)) -> List[UserResponse]:
+    """
+    Return the list of users the current user is following
+    """
+
     user = await User.get(user_id, fetch_links=True)
     if not user:
         raise HTTPException(
@@ -94,7 +117,14 @@ async def get_following(user_id: str, current_user: User = Depends(get_current_u
 @user_router.delete('/unfollow/{friend_id}',
                     status_code=status.HTTP_200_OK,
                     response_description='Unfollow user')
-async def unfollow_user(friend_id: str, current_user: User = Depends(get_current_user)) -> dict:
+async def unfollow_user(
+        friend_id: str,
+        current_user: User = Depends(get_current_user)) -> dict:
+    """
+    Unfollow a user, by removing the current user
+    from the list of followers fo the friend_id
+    """
+
     friend = await User.get(friend_id, fetch_links=True)
     if not friend:
         raise HTTPException(
@@ -135,6 +165,7 @@ async def delete_user(user_id: str, current_user: User = Depends(get_current_use
                     status_code=status.HTTP_200_OK,
                     response_description='Delete all user')
 async def delete_all_users():
+    """Delete all user; !! will be removed"""
     try:
         # Fetch all users
         users = await User.find().to_list()
