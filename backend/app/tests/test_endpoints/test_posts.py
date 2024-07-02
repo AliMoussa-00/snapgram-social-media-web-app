@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Testing the posts endpoints"""
 
+import uuid
 from app.utils.auth import create_access_token
 import pytest
 from httpx import AsyncClient
@@ -178,37 +179,58 @@ async def test_get_all_posts_of_user():
 async def test_delete_post_by_id():
     """Test deleting a post by ID."""
 
-    # Create a post to test deletion
-    post = Post(user_id="some_user_id", content="This is a test post to delete.",
-                media_type="image", media_url="http://example.com/delete_image.jpg")
-    await post.create()
-
     async with AsyncClient(app=app, base_url="http://test") as ac:
         # Register a new user and obtain tokens
+        unique_id = uuid.uuid4()
+        unique_email = f"test_delete_{unique_id}@example.com"
+        unique_username = f"test_delete_{unique_id}"
         register_data = {
-            "email": "test@example.com",
-            "username": "testuser",
+            "email": unique_email,
+            "username": unique_username,
             "password": "testpassword"
         }
-        await ac.post("/auth/register", json=register_data)
-
-        login_data = {
-            "username": "test@example.com",
-            "password": "testpassword"
-        }
-        login_response = await ac.post("/auth/login", data=login_data)
-        assert login_response.status_code == 200
+        login_response = await ac.post("/auth/register", json=register_data)
+        print(f"XXXXXX {login_response.content}")
+        assert login_response.status_code == 201
         access_token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {access_token}"}
 
         # Send a DELETE request to delete the post with valid token
         headers = {"Authorization": f"Bearer {access_token}"}
-        response = await ac.delete(f"/posts/{post.id}", headers=headers)
+        # Fetch the user to get the correct ID
+        user_response = await ac.get("/auth/me", headers=headers)
+        assert user_response.status_code == 200
+        user_id = user_response.json()['_id']
+
+        # Create a post for the user
+        post_data = {
+            "user_id": user_id,
+            "content": "This is a test post.",
+            "media_type": "image",
+            "media_url": "http://example.com/user_image.jpg"
+        }
+        post_response = await ac.post("/posts/", json=post_data, headers=headers)
+        assert post_response.status_code == 201
+        post_id = post_response.json()["_id"]
+
+        comment_data = {
+            "post_id": post_id,
+            "user_id": user_id,
+            "content": "New comment content"
+        }
+        response = await ac.post("/comments/", json=comment_data, headers=headers)
+        assert response.status_code == 201
+
+        response = await ac.delete(f"/posts/{post_id}", headers=headers)
         assert response.status_code == 200
         assert response.json()["message"] == "Post deleted successfully"
 
         # Ensure the post no longer exists
-        response = await ac.get(f"/posts/{post.id}", headers=headers)
+        response = await ac.get(f"/posts/{post_id}", headers=headers)
         assert response.status_code == 404
+
+        get_comment_response = await ac.get(f"/comments/post/{post_id}", headers=headers)
+        assert get_comment_response.status_code == 404
 
 
 @pytest.mark.anyio

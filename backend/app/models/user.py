@@ -7,6 +7,8 @@ from typing import List, Optional
 from app.models.common import Common
 from datetime import datetime
 
+from app.models.post import Post
+
 
 class User(Common):
     """
@@ -30,6 +32,7 @@ class User(Common):
     full_name: Optional[str] = None
     bio: Optional[str] = None
     profile_picture_url: Optional[str] = None
+    posts: Optional[List[Link["Post"]]] = []
     followers: Optional[List[Link["User"]]] = []
     following: Optional[List[Link["User"]]] = []
 
@@ -41,6 +44,14 @@ class User(Common):
             name (str): Name of the MongoDB collection where User documents are stored.
         """
         name = 'users'
+
+    async def add_post(self, post: Post):
+        self.posts.append(post)
+        await self.save()
+
+    async def remove_post(self, post: Post):
+        self.posts = [pt for pt in self.posts if pt.id != post.id]
+        await self.save()
 
 
 class UserCreateRequest(BaseModel):

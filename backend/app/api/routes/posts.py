@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """ Defining Routes for the post class """
 
+from beanie import DeleteRules
 from fastapi import APIRouter, HTTPException, status, Depends
 from app.api.dependencies import get_current_user
 from app.models.comment import Comment
@@ -25,6 +26,9 @@ async def create_post(post_create: PostCreateRequest, current_user: User = Depen
     post_data = post_create.model_dump(exclude_unset=True)
     post = Post(**post_data)
     await post.create()
+
+    await user.add_post(post)
+
     return PostResponse(**post.model_dump(by_alias=True))
 
 
@@ -40,13 +44,14 @@ async def get_all_posts(current_user: User = Depends(get_current_user)) -> List[
                  status_code=status.HTTP_200_OK,
                  response_description='Get all posts of a user')
 async def get_all_posts_of_user(user_id: str, current_user: User = Depends(get_current_user)) -> List[PostResponse]:
-    user = await User.get(user_id)
+    user = await User.get(user_id, fetch_links=True)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='User not found'
         )
-    posts = await Post.find(Post.user_id == user_id).to_list()
+    posts = user.posts
+    # posts = await Post.find(Post.user_id == user_id).to_list()
     return [PostResponse(**post.model_dump(by_alias=True)) for post in posts]
 
 
@@ -92,6 +97,8 @@ async def delete_post_by_id(post_id: str, current_user: User = Depends(get_curre
     await Like.find(Like.post_id == post.id).delete()
     await Comment.find(Comment.post_id == post.id).delete()
     await post.delete()
+    await current_user.remove_post(post)
+    # await post.delete(link_rule=DeleteRules.DELETE_LINKS)
     return {"message": "Post deleted successfully"}
 
 

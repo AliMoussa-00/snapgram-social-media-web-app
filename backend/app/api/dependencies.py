@@ -57,6 +57,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
         user = await User.find_one(User.email == email)
 
     if not user:
-        raise credentials_exception
-    print(f"User found: {user.email}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Could not find user"
+        )
     return user

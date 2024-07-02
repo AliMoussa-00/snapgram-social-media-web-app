@@ -2,7 +2,10 @@
 """ Defining Routes for the user class """
 
 from typing import List
+from beanie import DeleteRules
 from fastapi import APIRouter, HTTPException, status, Depends
+from app.models.comment import Comment
+from app.models.like import Like
 from app.models.user import User, UserResponse, UpdateUserRequest
 from app.api.dependencies import get_current_user
 from app.utils.auth import hash_password
@@ -107,14 +110,24 @@ async def unfollow_user(friend_id: str, current_user: User = Depends(get_current
 
 
 @user_router.delete('/{user_id}',
-                    status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user(user_id: str, current_user: User = Depends(get_current_user)) -> None:
+                    status_code=status.HTTP_200_OK)
+async def delete_user(user_id: str, current_user: User = Depends(get_current_user)) -> dict:
     """Delete a user by ID"""
-    user = await User.get(user_id)
+    user = await User.get(user_id, fetch_links=True, nesting_depth=1)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail='User not found')
+
+    # Get all posts of this user
+    posts = user.posts
+    for post in posts:
+        await Comment.find(Comment.post_id == post.id).delete()
+        await Like.find(Like.post_id == post.id).delete()
+        await post.delete()
+        await user.remove_post(post)
+    # Delete the user
     await user.delete()
+    return {"message": "user deleted successfully"}
 
 
 # For Testing

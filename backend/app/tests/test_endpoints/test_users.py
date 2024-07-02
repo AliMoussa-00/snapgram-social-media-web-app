@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """ testing the users endpoints """
 
+import uuid
+from app.models.comment import Comment
+from app.models.like import Like
+from app.models.post import Post
 from app.utils.auth import create_access_token
 import pytest
 from httpx import AsyncClient
@@ -9,6 +13,7 @@ from app.models.user import User
 from app.models.token import BlackListedTokens
 from beanie import init_beanie
 from motor.motor_asyncio import AsyncIOMotorClient
+from asgi_lifespan import LifespanManager
 
 
 # 'fixture': This decorator is used to create a fixture in pytest.
@@ -25,7 +30,7 @@ async def initialize_db():
     """Initialize the test database."""
     client = AsyncIOMotorClient(
         "mongodb://localhost:27017")
-    await init_beanie(database=client.test_db, document_models=[User, BlackListedTokens])
+    await init_beanie(database=client.test_db, document_models=[User, Post, Comment, Like, BlackListedTokens])
     yield
     # Drop the test database after tests are done
     await client.drop_database("test_db")
@@ -146,37 +151,60 @@ async def test_update_user():
 async def test_delete_user():
     """Test deleting a user."""
 
-    # Create a user to test deletion
-    user = User(email="test4@example.com",
-                hashed_password="hashedpassword", username="testuser4")
-    await user.create()
-
+    # async with LifespanManager(app):
     async with AsyncClient(app=app, base_url="http://test") as ac:
         # Register a new user and obtain tokens
+        unique_id = uuid.uuid4()
+        unique_email = f"test_delete_{unique_id}@example.com"
+        unique_username = f"test_delete_{unique_id}"
         register_data = {
-            "email": "test@example.com",
-            "username": "testuser",
+            "email": unique_email,
+            "username": unique_username,
             "password": "testpassword"
         }
-        await ac.post("/auth/register", json=register_data)
-
-        login_data = {
-            "username": "test@example.com",
-            "password": "testpassword"
-        }
-        login_response = await ac.post("/auth/login", data=login_data)
-        assert login_response.status_code == 200
+        login_response = await ac.post("/auth/register", json=register_data)
+        assert login_response.status_code == 201
         access_token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {access_token}"}
+
+        # Fetch the user to get the correct ID
+        user_response = await ac.get("/auth/me", headers=headers)
+        assert user_response.status_code == 200
+        user_id = user_response.json()['_id']
+
+        # Create a post for the user
+        post_data = {
+            "user_id": user_id,
+            "content": "This is a test post.",
+            "media_type": "image",
+            "media_url": "http://example.com/user_image.jpg"
+        }
+        post_response = await ac.post("/posts/", json=post_data, headers=headers)
+        assert post_response.status_code == 201
+        post_id = post_response.json()["_id"]
+
+        comment_data = {
+            "post_id": post_id,
+            "user_id": user_id,
+            "content": "New comment content"
+        }
+        response = await ac.post("/comments/", json=comment_data, headers=headers)
+        assert response.status_code == 201
 
         # Send a DELETE request to delete the user with valid token
-        headers = {"Authorization": f"Bearer {access_token}"}
-        response = await ac.delete(f"/users/{user.id}", headers=headers)
+        response = await ac.delete(f"/users/{user_id}", headers=headers)
+        assert response.status_code == 200
+        assert response.json() == {"message": "user deleted successfully"}
 
-        assert response.status_code == 204
+        # Verify the user, posts, and comments are deleted
+        get_user_response = await ac.get(f"/users/{user_id}", headers=headers)
+        assert get_user_response.status_code == 404
 
-        # Ensure the user no longer exists
-        response = await ac.get(f"/users/{user.id}", headers=headers)
-        assert response.status_code == 404
+        get_post_response = await ac.get(f"/posts/{post_id}", headers=headers)
+        assert get_post_response.status_code == 404
+
+        get_comment_response = await ac.get(f"/comments/post/{post_id}", headers=headers)
+        assert get_comment_response.status_code == 404
 
 
 @pytest.mark.anyio

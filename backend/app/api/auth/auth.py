@@ -79,7 +79,6 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
                  response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)) -> UserResponse:
     """get the current authenticated user"""
-
     return UserResponse(**current_user.model_dump(by_alias=True))
 
 
