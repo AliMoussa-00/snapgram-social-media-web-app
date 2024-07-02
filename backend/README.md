@@ -70,7 +70,7 @@ backend/
 5. Run the application:
   
   ```bash
-  uvicorn app.main:app --reload
+  uvicorn app.api.app:app
   ```
   
 
