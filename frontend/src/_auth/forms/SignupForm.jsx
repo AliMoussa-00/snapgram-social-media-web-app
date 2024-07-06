@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -16,6 +17,7 @@ import { signUpValidation } from '@/lib/validation/schemas';
 import Loader from '@/components/shared/Loader';
 
 const SignupForm = () => {
+	const naviagte = useNavigate();
 	const isLoading = true;
 	// defining the form
 	const form = useForm({
