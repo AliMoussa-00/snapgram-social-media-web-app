@@ -2,6 +2,7 @@
 """ FastApi server. """
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app.models.engine.db_storage import init_db
 from app.api.routes.posts import post_router
 from app.api.routes.comments import comment_router
@@ -12,6 +13,15 @@ from app.api.auth.auth import auth_router  # router as AuthRouter
 
 
 app = FastAPI()
+
+# Adding Middleware for CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins, adjust as needed
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["*"],
+)
 
 app.include_router(auth_router, tags=['Auth'], prefix='/auth')
 app.include_router(user_router, tags=['Users'], prefix='/users')
