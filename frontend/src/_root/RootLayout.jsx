@@ -1,9 +1,10 @@
-import React from 'react'
+import { useUserContext } from '@/context/AuthContext';
 
 const RootLayout = () => {
-  return (
-    <div>RootLayout</div>
-  )
-}
+	const { user } = useUserContext();
+	console.log(`User: ${JSON.stringify(user)}`);
 
-export default RootLayout
+	return <div>RootLayout</div>;
+};
+
+export default RootLayout;

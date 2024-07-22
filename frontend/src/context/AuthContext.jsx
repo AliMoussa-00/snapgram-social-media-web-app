@@ -2,10 +2,10 @@
  * Creating the authentication context to be used
  * in the child components
  */
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect, useContext, createContext } from 'react';
-import { AUTH_ROUTE } from '@/constants';
+import { getUser } from '@/lib/api/requests';
+import { TOKEN_OBJECT } from '@/lib/api/constants';
 
 const INITIAL_USER = {
 	id: '',
@@ -45,43 +45,30 @@ export function AuthProvider({ children }) {
 		setIsLoading(true);
 
 		try {
-			const accessToken = localStorage.getItem('accessToken');
+			const response = await getUser();
 
-			axios
-				.get(`${AUTH_ROUTE}/me`, {
-					headers: {
-						Authorization: `Bearer ${accessToken}`,
-						'Content-Type': 'application/json'
-					}
-				})
-				.then(response => {
-					console.log(`response of '/me' : ${response.data}\n`);
-					const {
-						_id,
-						email,
-						username,
-						full_name,
-						bio,
-						profile_picture_url
-					} = response.data;
+			const {
+				_id,
+				email,
+				username,
+				full_name,
+				bio,
+				profile_picture_url
+			} = response;
 
-					setUser({
-						id: _id,
-						username,
-						email,
-						bio,
-						imageUrl: profile_picture_url,
-						name: full_name
-					});
+			setUser({
+				id: _id,
+				username,
+				email,
+				bio,
+				imageUrl: profile_picture_url,
+				name: full_name
+			});
 
-					setIsAuthenticated(true);
-					return true;
-				})
-				.catch(error => {
-					console.error(`Error with headers in GET request: ${error}\n`);
-				});
+			setIsAuthenticated(true);
+			return true;
 		} catch (error) {
-			console.log(`Authentication error: ${error}`);
+			console.error(`Authentication error: ${error}`);
 			return false;
 		} finally {
 			setIsLoading(false);
@@ -89,8 +76,8 @@ export function AuthProvider({ children }) {
 	};
 
 	useEffect(() => {
-		const accessToken = localStorage.getItem('accessToken');
-		if (!accessToken) {
+		const tokenObject = localStorage.getItem(TOKEN_OBJECT);
+		if (!tokenObject || !isAuthenticated) {
 			navigate('/sign-in');
 		}
 		checkAuthUser();

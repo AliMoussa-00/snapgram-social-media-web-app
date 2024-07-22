@@ -1,4 +1,6 @@
+import { useUserContext } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+
 import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,13 +14,22 @@ import {
 } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-
-import { signUpValidation } from '@/lib/validation/schemas';
 import Loader from '@/components/shared/Loader';
 
+import { signUpValidation } from '@/lib/validation/schemas';
+import { useCreateUserAccount } from '@/lib/react-query/queries';
+import { TOKEN_OBJECT } from '@/lib/api/constants';
+
 const SignupForm = () => {
-	const naviagte = useNavigate();
-	const isLoading = true;
+	const navigate = useNavigate();
+	const { checkAuthUser, isLoading: isUserLoading } = useUserContext();
+
+	// Queries
+	const {
+		mutateAsync: createUserAccount,
+		isLoading: isCreatingAccount
+	} = useCreateUserAccount();
+
 	// defining the form
 	const form = useForm({
 		resolver: zodResolver(signUpValidation),
@@ -31,9 +42,28 @@ const SignupForm = () => {
 	});
 
 	// set function to "async"
-	function onSubmit(values) {
-		console.log(values);
-	}
+	const onSubmit = async values => {
+		try {
+			const tokenObject = await createUserAccount(values);
+			if (!tokenObject) throw new Error('createUserAccount Failed');
+
+			localStorage.setItem(TOKEN_OBJECT, JSON.stringify(tokenObject));
+
+			const isLoggedIn = await checkAuthUser();
+			if (isLoggedIn) {
+				form.reset();
+				navigate('/');
+			} else {
+				console.error('isLoggedIn Failed!! <useToast>');
+				return;
+			}
+		} catch (error) {
+			console.error(`SignUp Form error: ${error}`);
+			if (error.message === '400') {
+				form.setError('email', { message: 'Email already exists' });
+			}
+		}
+	};
 
 	return (
 		<Form {...form}>
@@ -99,8 +129,10 @@ const SignupForm = () => {
 							</FormItem>}
 					/>
 					<Button type="submit" className="shad-button_primary">
-						{isLoading
-							? <div className="flex-center gap-2"> <Loader/> Loading...</div>
+						{isUserLoading || isCreatingAccount
+							? <div className="flex-center gap-2">
+									{' '}<Loader /> Loading...
+								</div>
 							: 'Sign up'}
 					</Button>
 
