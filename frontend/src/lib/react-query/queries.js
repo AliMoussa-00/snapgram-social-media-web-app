@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { QUERY_KEYS } from './queryKeys';
 
-import { createUserAccount, getUser } from '../api/requests';
+import { createUserAccount, getUser, signInAccount } from '../api/requests';
 
 export const useGetUser = () => {
 	return useQuery({
@@ -13,5 +13,11 @@ export const useGetUser = () => {
 export const useCreateUserAccount = () => {
 	return useMutation({
 		mutationFn: newUser => createUserAccount(newUser)
+	});
+};
+
+export const useSignInAccount = () => {
+	return useMutation({
+		mutationFn: userCredential => signInAccount(userCredential)
 	});
 };

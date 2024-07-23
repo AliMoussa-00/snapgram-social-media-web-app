@@ -1,3 +1,7 @@
+import { useUserContext } from '@/context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { useSignInAccount } from '@/lib/react-query/queries';
+
 import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,9 +18,15 @@ import { Input } from '@/components/ui/input';
 
 import Loader from '@/components/shared/Loader';
 import { signInValidation } from '@/lib/validation/schemas';
+import { TOKEN_OBJECT } from '@/lib/api/constants';
 
 const SigninForm = () => {
-	const isLoading = false;
+	const navigate = useNavigate();
+	const { checkAuthUser, isLoading: isUserLoading } = useUserContext();
+
+	//Query
+	const { mutateAsync: signInAccount, isLoading } = useSignInAccount();
+
 	// defining the form
 	const form = useForm({
 		resolver: zodResolver(signInValidation),
@@ -27,9 +37,25 @@ const SigninForm = () => {
 	});
 
 	// set function to "async"
-	function onSubmit(values) {
-		console.log(values);
-	}
+	const onSubmit = async values => {
+		try {
+			const tokenObject = await signInAccount(values);
+			if (!tokenObject) throw new Error('signInAccount Failed');
+
+			localStorage.setItem(TOKEN_OBJECT, JSON.stringify(tokenObject));
+
+			const isLoggedIn = await checkAuthUser();
+			if (isLoggedIn) {
+				form.reset();
+				navigate('/');
+			} else {
+				console.error('isLoggedIn Failed!! <useToast>');
+				return;
+			}
+		} catch (error) {
+			console.error(`SignInForm error: ${error}`);
+		}
+	};
 
 	return (
 		<Form {...form}>
@@ -71,7 +97,7 @@ const SigninForm = () => {
 							</FormItem>}
 					/>
 					<Button type="submit" className="shad-button_primary">
-						{isLoading
+						{isLoading || isUserLoading
 							? <div className="flex-center gap-2">
 									{' '}<Loader /> Loading...
 								</div>

@@ -1,5 +1,6 @@
 import { useUserContext } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useCreateUserAccount } from '@/lib/react-query/queries';
 
 import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
@@ -17,7 +18,6 @@ import { Input } from '@/components/ui/input';
 import Loader from '@/components/shared/Loader';
 
 import { signUpValidation } from '@/lib/validation/schemas';
-import { useCreateUserAccount } from '@/lib/react-query/queries';
 import { TOKEN_OBJECT } from '@/lib/api/constants';
 
 const SignupForm = () => {
