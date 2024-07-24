@@ -1,10 +1,21 @@
 import { useUserContext } from '@/context/AuthContext';
+import { Navigate, Outlet } from 'react-router-dom';
 
 const RootLayout = () => {
-	const { user } = useUserContext();
+	const { user, isAuthenticated } = useUserContext();
 	console.log(`User: ${JSON.stringify(user)}`);
 
-	return <div>RootLayout</div>;
+	return (
+		<>
+			{!isAuthenticated ? (
+				<Navigate to='/sign-in' />
+			) : (
+					<>
+						<div>RootLayout</div>
+				</>
+			)}
+		</>
+	)
 };
 
 export default RootLayout;

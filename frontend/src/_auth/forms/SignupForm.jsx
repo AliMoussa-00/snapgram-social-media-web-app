@@ -16,12 +16,14 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Loader from '@/components/shared/Loader';
+import { useToast } from '@/components/ui/use-toast';
 
 import { signUpValidation } from '@/lib/validation/schemas';
 import { TOKEN_OBJECT } from '@/lib/api/constants';
 
 const SignupForm = () => {
 	const navigate = useNavigate();
+	const { toast } = useToast();
 	const { checkAuthUser, isLoading: isUserLoading } = useUserContext();
 
 	// Queries
@@ -54,13 +56,20 @@ const SignupForm = () => {
 				form.reset();
 				navigate('/');
 			} else {
-				console.error('isLoggedIn Failed!! <useToast>');
-				return;
+				console.error('isLoggedIn Failed!!');
+				throw new Error('Sign up checkAuthUser Failed');
 			}
 		} catch (error) {
-			console.error(`SignUp Form error: ${error}`);
-			if (error.message === '400') {
-				form.setError('email', { message: 'Email already exists' });
+			if (error.statusCode === 400) {
+				console.error(`XXXX==>${error.message.includes('Email')}`);
+				if (error.message.includes('Email')) {
+					form.setError('email', { message: 'email already exists' });
+				} else {
+					form.setError('username', { message: 'username already exists' });
+				}
+			} else {
+				toast({ title: 'Sign up Failed. Please try again!' });
+				return;
 			}
 		}
 	};
@@ -129,9 +138,9 @@ const SignupForm = () => {
 							</FormItem>}
 					/>
 					<Button type="submit" className="shad-button_primary">
-						{isUserLoading || isCreatingAccount
+						{isCreatingAccount || isUserLoading
 							? <div className="flex-center gap-2">
-									{' '}<Loader /> Loading...
+									<Loader /> Loading...
 								</div>
 							: 'Sign up'}
 					</Button>

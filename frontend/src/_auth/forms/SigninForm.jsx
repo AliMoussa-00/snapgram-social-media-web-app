@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useToast } from '@/components/ui/use-toast';
 
 import Loader from '@/components/shared/Loader';
 import { signInValidation } from '@/lib/validation/schemas';
@@ -22,6 +23,7 @@ import { TOKEN_OBJECT } from '@/lib/api/constants';
 
 const SigninForm = () => {
 	const navigate = useNavigate();
+	const { toast } = useToast();
 	const { checkAuthUser, isLoading: isUserLoading } = useUserContext();
 
 	//Query
@@ -49,11 +51,13 @@ const SigninForm = () => {
 				form.reset();
 				navigate('/');
 			} else {
-				console.error('isLoggedIn Failed!! <useToast>');
-				return;
+				console.error('isLoggedIn Failed!!');
+				throw new Error('Sign in checkAuthUser Failed');
 			}
 		} catch (error) {
 			console.error(`SignInForm error: ${error}`);
+			toast({ title: 'Sign in Failed. Please try again!' });
+			return;
 		}
 	};
 
@@ -99,7 +103,7 @@ const SigninForm = () => {
 					<Button type="submit" className="shad-button_primary">
 						{isLoading || isUserLoading
 							? <div className="flex-center gap-2">
-									{' '}<Loader /> Loading...
+									<Loader /> Loading...
 								</div>
 							: 'Sign in'}
 					</Button>

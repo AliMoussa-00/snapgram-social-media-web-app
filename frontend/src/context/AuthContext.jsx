@@ -45,28 +45,30 @@ export function AuthProvider({ children }) {
 		setIsLoading(true);
 
 		try {
-			const response = await getUser();
+			const user = await getUser();
+			if (user) {
+				const {
+					_id,
+					email,
+					username,
+					full_name,
+					bio,
+					profile_picture_url
+				} = user;
 
-			const {
-				_id,
-				email,
-				username,
-				full_name,
-				bio,
-				profile_picture_url
-			} = response;
+				setUser({
+					id: _id,
+					username,
+					email,
+					bio,
+					imageUrl: profile_picture_url,
+					name: full_name
+				});
 
-			setUser({
-				id: _id,
-				username,
-				email,
-				bio,
-				imageUrl: profile_picture_url,
-				name: full_name
-			});
-
-			setIsAuthenticated(true);
-			return true;
+				setIsAuthenticated(true);
+				return true;
+			}
+			return false;
 		} catch (error) {
 			console.error(`Authentication error: ${error}`);
 			return false;
@@ -77,7 +79,7 @@ export function AuthProvider({ children }) {
 
 	useEffect(() => {
 		const tokenObject = localStorage.getItem(TOKEN_OBJECT);
-		if (!tokenObject || !isAuthenticated) {
+		if (!tokenObject) {
 			navigate('/sign-in');
 		}
 		checkAuthUser();

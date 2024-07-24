@@ -24,7 +24,11 @@ export async function createUserAccount(newUser) {
 		return token;
 	} catch (error) {
 		console.error(`Error in 'createUserAccount': ${error}`);
-		throw error;
+		const errorObject = {
+			statusCode: error.response.status,
+			message: error.response.data.detail
+		};
+		throw errorObject;
 	}
 }
 
