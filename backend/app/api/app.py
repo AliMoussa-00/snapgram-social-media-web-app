@@ -9,9 +9,19 @@ from app.api.routes.likes import like_router
 
 from app.api.routes.users import user_router   # router as Router
 from app.api.auth.auth import auth_router  # router as AuthRouter
+from fastapi.middleware.cors import CORSMiddleware
 
 
 app = FastAPI()
+
+# Adding Middleware for CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins, adjust as needed
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["*"],
+)
 
 app.include_router(auth_router, tags=['auth'], prefix='/auth')
 app.include_router(user_router, tags=['Users'], prefix='/users')
