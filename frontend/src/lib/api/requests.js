@@ -1,4 +1,5 @@
 import apiClient from './axios';
+import { TOKEN_OBJECT } from './constants';
 
 export async function getUser() {
 	try {
@@ -51,6 +52,19 @@ export async function signInAccount(userCredential) {
 		return tokenObject;
 	} catch (error) {
 		console.error(`Error in 'signInAccount': ${error}`);
+		throw error;
+	}
+}
+
+export async function signOutAccount() {
+	try {
+		const response = await apiClient.post('/auth/logout');
+
+		if (response.status !== 200) throw new Error('Logout Failed');
+
+		localStorage.removeItem(TOKEN_OBJECT);
+	} catch (error) {
+		console.error(`signOutAccount Failed: ${error}`);
 		throw error;
 	}
 }

@@ -83,7 +83,7 @@ export function AuthProvider({ children }) {
 			navigate('/sign-in');
 		}
 		checkAuthUser();
-	}, []);
+	}, [navigate]);
 
 	// defining the value to be passed to the components
 	const value = {
