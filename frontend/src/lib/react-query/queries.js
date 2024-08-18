@@ -1,13 +1,17 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { QUERY_KEYS } from './queryKeys';
 
 import {
+	createPost,
 	createUserAccount,
 	getUser,
 	signInAccount,
 	signOutAccount
 } from '../api/requests';
 
+// ============================================================
+// USER QUERIES
+// ============================================================
 export const useGetUser = () => {
 	return useQuery({
 		queryKey: [QUERY_KEYS.GET_USER],
@@ -32,3 +36,18 @@ export const useSignOutAccount = () => {
 		mutationFn: () => signOutAccount()
 	});
 };
+// ============================================================
+// POST QUERIES
+// ============================================================
+
+export const useCreatePost = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (post) => createPost(post),
+		onSuccess: () => {
+			// queryClient.invalidateQueries({
+			// 	queryKey: [QUERY_KEYS.GET_RECENT_POSTS]
+			// });
+		}
+	});
+}

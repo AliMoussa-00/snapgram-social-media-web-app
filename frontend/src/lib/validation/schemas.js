@@ -1,7 +1,7 @@
 /**
  * I will be using 'zod' for validating forms
  */
-import { z } from 'zod';
+import { custom, z } from 'zod';
 
 export const signUpValidation = z.object({
 	name: z.string().min(2, { message: 'Name is too short' }).max(50),
@@ -19,4 +19,11 @@ export const signInValidation = z.object({
 		.string()
 		.min(8, { message: 'Password must be at least 8 characters' })
 		.max(50)
+});
+
+export const postValidation = z.object({
+	caption: z.string().min(5).max(2200),
+	location: z.string().min(2).max(100),
+	file: custom(),
+	tags: z.string()
 });

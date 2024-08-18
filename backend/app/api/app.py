@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.models.engine.db_storage import init_db
 from app.api.routes.posts import post_router
+from app.api.routes.files import file_router
 from app.api.routes.comments import comment_router
 from app.api.routes.likes import like_router
 
@@ -26,6 +27,7 @@ app.add_middleware(
 app.include_router(auth_router, tags=['Auth'], prefix='/auth')
 app.include_router(user_router, tags=['Users'], prefix='/users')
 app.include_router(post_router, tags=['Posts'], prefix='/posts')
+app.include_router(file_router, tags=['Files'], prefix='/files')
 app.include_router(comment_router, tags=['Comments'], prefix='/comments')
 app.include_router(like_router, tags=['Likes'], prefix='/likes')
 

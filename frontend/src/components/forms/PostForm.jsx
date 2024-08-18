@@ -1,11 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import {
 	Form,
 	FormControl,
-	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -14,20 +12,47 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import FileUploader from '../shared/FileUploader';
 import { Input } from '../ui/input';
-
-const formSchema = z.object({
-	username: z.string().min(2).max(50)
-});
+import { postValidation } from '@/lib/validation/schemas';
+import { useCreatePost } from '@/lib/react-query/queries';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '../ui/use-toast';
+import { useUserContext } from '@/context/AuthContext';
 
 // if we are updating a post then w will need a post
-const PostForm = ({post}) => {
+const PostForm = ({ post }) => {
+	const navigate = useNavigate();
+	const { toast } = useToast();
+	const { user } = useUserContext();
+	
 	const form = useForm({
-		resolver: zodResolver(formSchema),
-		defaultValues: { username: '' }
+		resolver: zodResolver(postValidation),
+		defaultValues: {
+			caption: post ? post?.caption : "",
+			file: [],
+			location: post ? post?.location : "",
+			tags: post ? post?.tags.join(',') : '',
+		}
 	});
 
-	function onSubmit(values) {
-		console.log(values);
+	//queries
+	const { mutateAsync: createPost, isLoading: isLoadingCreate } = useCreatePost();
+
+	const onSubmit = async (values) => {
+		try{
+			// ACTION = CREATE
+			await createPost({
+				...values,
+				userId: user.id,
+			});
+
+			navigate("/");
+		}
+		catch (error) {
+			toast({
+				title: `Creating post failed. Please try again.`,
+			});
+			return;
+		}
 	}
 	return (
 		<Form {...form}>
@@ -72,7 +97,7 @@ const PostForm = ({post}) => {
 						<FormItem>
 							<FormLabel className="shad-form_label">Add Location</FormLabel>
 							<FormControl>
-								<Input className="shad-input" />
+								<Input className="shad-input" {...field} />
 							</FormControl>
 							<FormMessage className="shad-form_message" />
 						</FormItem>}
@@ -90,6 +115,7 @@ const PostForm = ({post}) => {
 									className="shad-input"
 									type="text"
 									placeholder="Art, Sport, Learning"
+									{...field}
 								/>
 							</FormControl>
 							<FormMessage className="shad-form_message" />
